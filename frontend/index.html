@@ -12,7 +12,7 @@
   <!-- Monaco Editor CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.css">
   <!-- Antigravity Theme CSS -->
-  <link rel="stylesheet" href="/static/css/ide.css?v=4">
+  <link rel="stylesheet" href="/static/css/ide.css?v=5">
 </head>
 <body>
   <div class="antigravity-layout">
@@ -26,16 +26,18 @@
           <i class="codicon codicon-rocket brand-icon"></i>
           <span class="brand-title">Antigravity+</span>
         </div>
-        <ul class="nav-menu">
-          <li class="menu-trigger" id="menu-file">File</li>
-          <li class="menu-trigger">Edit</li>
-          <li class="menu-trigger">Selection</li>
-          <li class="menu-trigger">View</li>
-          <li class="menu-trigger">Go</li>
-          <li class="menu-trigger">Run</li>
-          <li class="menu-trigger" id="menu-terminal-btn">Terminal</li>
-          <li class="menu-trigger">Help</li>
+        <ul class="nav-menu" id="nav-menu">
+          <li class="menu-trigger" id="menu-file" data-menu="file">File</li>
+          <li class="menu-trigger" id="menu-edit" data-menu="edit">Edit</li>
+          <li class="menu-trigger" id="menu-selection" data-menu="selection">Selection</li>
+          <li class="menu-trigger" id="menu-view" data-menu="view">View</li>
+          <li class="menu-trigger" id="menu-go" data-menu="go">Go</li>
+          <li class="menu-trigger" id="menu-run" data-menu="run">Run</li>
+          <li class="menu-trigger" id="menu-terminal-btn" data-menu="terminal">Terminal</li>
+          <li class="menu-trigger" id="menu-help" data-menu="help">Help</li>
         </ul>
+        <!-- Single shared dropdown rendered at the menu bar's position -->
+        <div class="menu-dropdown hidden" id="menu-dropdown"></div>
       </div>
 
       <div class="nav-center">
@@ -98,7 +100,7 @@
       </nav>
 
       <!-- Explorer Sidebar -->
-      <aside class="explorer-sidebar" id="explorer-panel">
+      <aside class="explorer-sidebar side-panel visible" id="explorer-panel">
         <div class="explorer-top-bar">
           <span class="explorer-heading">EXPLORER</span>
           <div class="explorer-actions">
@@ -119,12 +121,71 @@
         </div>
       </aside>
 
+      <!-- Search Panel -->
+      <aside class="side-panel" id="search-panel">
+        <div class="explorer-top-bar">
+          <span class="explorer-heading">SEARCH</span>
+        </div>
+        <div class="side-panel-body">
+          <div class="search-input-row">
+            <input type="text" id="search-input" placeholder="Search files &amp; contents…" />
+            <button class="icon-tool-btn" id="btn-run-search" title="Search">
+              <i class="codicon codicon-search"></i>
+            </button>
+          </div>
+          <div class="search-results" id="search-results">
+            <div class="empty-tree-hint">Type a query and press Enter to search the workspace.</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Source Control Panel -->
+      <aside class="side-panel" id="scm-panel">
+        <div class="explorer-top-bar">
+          <span class="explorer-heading">SOURCE CONTROL</span>
+          <button class="icon-tool-btn" id="btn-refresh-scm" title="Refresh">
+            <i class="codicon codicon-refresh"></i>
+          </button>
+        </div>
+        <div class="side-panel-body">
+          <div class="scm-branch-line" id="scm-branch">Loading…</div>
+          <div class="scm-changes-list" id="scm-changes"></div>
+          <div class="scm-commits">
+            <div class="explorer-heading" style="margin:10px 0 6px;">RECENT COMMITS</div>
+            <div id="scm-commits-list"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Run & Debug Panel -->
+      <aside class="side-panel" id="debug-panel">
+        <div class="explorer-top-bar">
+          <span class="explorer-heading">RUN &amp; DEBUG</span>
+        </div>
+        <div class="side-panel-body">
+          <div class="empty-tree-hint" style="margin-bottom:10px;">Run whitelisted dev targets — output streams to the terminal below.</div>
+          <div class="debug-target-list" id="debug-target-list"></div>
+          <div class="debug-result" id="debug-result"></div>
+        </div>
+      </aside>
+
+      <!-- Extensions Panel -->
+      <aside class="side-panel" id="extensions-panel">
+        <div class="explorer-top-bar">
+          <span class="explorer-heading">EXTENSIONS</span>
+        </div>
+        <div class="side-panel-body">
+          <div class="empty-tree-hint" style="margin-bottom:10px;">Built-in IDE features — toggle visibility (saved locally).</div>
+          <div class="ext-list" id="ext-list"></div>
+        </div>
+      </aside>
+
       <!-- Center Code Area: Tabs + Monaco Editor + Live Preview -->
       <section class="editor-section">
         
         <!-- Editor Tabs Bar -->
         <div class="editor-tabs-bar" id="editor-tabs-list">
-          <div class="editor-tab active" id="tab-preview">
+          <div class="editor-tab active" id="tab-preview" title="Show / hide the live preview panel">
             <i class="codicon codicon-globe"></i>
             <span>Live Preview</span>
           </div>
@@ -158,10 +219,10 @@
         <!-- Bottom Terminal Drawer -->
         <div class="bottom-terminal-panel" id="terminal-drawer">
           <div class="terminal-bar">
-            <div class="terminal-tabs">
-              <span class="term-tab active"><i class="codicon codicon-terminal"></i> Terminal</span>
-              <span class="term-tab"><i class="codicon codicon-output"></i> Output</span>
-              <span class="term-tab"><i class="codicon codicon-debug-console"></i> Debug Console</span>
+            <div class="terminal-tabs" id="terminal-tabs">
+              <span class="term-tab active" data-term-tab="terminal"><i class="codicon codicon-terminal"></i> Terminal</span>
+              <span class="term-tab" data-term-tab="output"><i class="codicon codicon-output"></i> Output</span>
+              <span class="term-tab" data-term-tab="debug"><i class="codicon codicon-debug-console"></i> Debug Console</span>
             </div>
             <div class="terminal-tools">
               <button class="term-tool-btn" id="btn-clear-term" title="Clear Terminal">
@@ -353,10 +414,10 @@
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 
   <!-- Application Modules -->
-  <script src="/static/js/monaco_editor.js?v=3"></script>
+  <script src="/static/js/monaco_editor.js?v=4"></script>
   <script src="/static/js/xterm_terminal.js?v=3"></script>
   <script src="/static/js/agent_chat.js?v=3"></script>
   <script src="/static/js/settings.js?v=5"></script>
-  <script src="/static/js/main.js?v=3"></script>
+  <script src="/static/js/main.js?v=6"></script>
 </body>
 </html>

@@ -802,6 +802,19 @@ class CanonicalOrchestrator:
     # Real 6-Agent Response Synthesis (API-key LLM backend via llm.py)
     # --------------------------------------------------------------------------
 
+    # When the context engine selected nothing (e.g. a plain chat prompt with no
+    # editor selection), fall back to these key project files so the agent
+    # swarm still analyses real code instead of "(no files selected)".
+    _FALLBACK_CONTEXT_FILES = [
+        "README.md",
+        "server.py",
+        "config.yaml",
+        "llm.py",
+        "core/canonical_orchestrator.py",
+        ".env.example",
+        "package.json",
+    ]
+
     @staticmethod
     def _truncate(text: str, limit: int) -> str:
         """Cut a long agent reply at a word boundary near ``limit`` chars."""
@@ -814,33 +827,36 @@ class CanonicalOrchestrator:
 
     def _build_context_digest(self, prompt: str, context: Dict[str, Any]) -> str:
         """Compact, real workspace snippets (from the context engine's selected
-        files) so the agents analyse actual code instead of hallucinating."""
+        files, or key project files when nothing is selected) so the agents
+        analyse actual code instead of hallucinating."""
         del prompt
-        selected = context.get("selected_files") or []
         budget = 6000
         parts: List[str] = []
         used = 0
+        max_files = 3
+
+        selected = [str(r).replace("\\", "/") for r in (context.get("selected_files") or [])]
+        if not selected:
+            selected = [f for f in self._FALLBACK_CONTEXT_FILES if os.path.isfile(os.path.join(self.workspace_root, f))]
+
         for rel in selected:
-            if len(parts) >= 3 or used >= budget:
+            if len(parts) >= max_files or used >= budget:
                 break
-            rel = str(rel).replace("\\", "/")
             if rel.startswith(("..", ".git")):
                 continue
             full = os.path.join(self.workspace_root, rel)
             try:
-                if not os.path.isfile(full):
-                    continue
                 with open(full, "r", encoding="utf-8", errors="replace") as fh:
                     content = fh.read(12000)
-                if "\x00" in content[:2048]:
-                    continue  # binary file
-                snippet = content[: budget - used]
-                if not snippet.strip():
-                    continue
-                parts.append(f"--- {rel} ---\n{snippet}")
-                used += len(snippet)
             except OSError:
                 continue
+            if "\x00" in content[:2048]:
+                continue  # binary file
+            snippet = content[: budget - used]
+            if not snippet.strip():
+                continue
+            parts.append(f"--- {rel} ---\n{snippet}")
+            used += len(snippet)
         return "\n\n".join(parts)
 
     async def _synthesize_agent_response(

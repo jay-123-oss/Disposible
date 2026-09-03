@@ -12,6 +12,10 @@ Features:
 - POST /api/reject        : Discard staged files
 - GET  /api/settings/llm  : Live LLM gateway status + selectable providers
 - POST /api/settings/llm  : Save chosen LLM provider + API key to .env
+- GET  /api/search        : Search file names + contents (IDE Search panel)
+- GET  /api/git/status    : Read-only branch / status / commit snapshot (SCM panel)
+- GET  /api/debug/targets : List whitelisted run/debug targets
+- POST /api/debug/run     : Run a whitelisted dev target with a hard timeout
 """
 
 from __future__ import annotations
@@ -32,10 +36,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from core.canonical_orchestrator import CanonicalOrchestrator
-from agents.orchestrator import AgentOrchestrator as LegacyMockAgentOrchestrator
 from core.continuity_engine import ContinuityEngine
 from core.self_healing import SelfHealingEngine
-from llm import PROVIDER_PRESETS, get_llm_status
+from llm import PROVIDER_PRESETS, get_llm_status, resolve_model
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("AntigravityServer")
@@ -60,8 +63,6 @@ app.add_middleware(
 
 # Canonical Multi-Agent Orchestrator (Active Runtime)
 canonical_orchestrator = CanonicalOrchestrator(workspace_root=BASE_DIR)
-# Legacy mock swarm preserved for standalone diagnostics
-legacy_mock_orchestrator = LegacyMockAgentOrchestrator()
 
 continuity_engine = ContinuityEngine()
 self_healing_engine = SelfHealingEngine()
@@ -141,10 +142,17 @@ def build_staged_deltas(files: Dict[str, str]) -> List[Dict[str, Any]]:
 # ==============================================================================
 # File System Utilities
 # ==============================================================================
+IGNORED_DIRS = {
+    ".git", "node_modules", "__pycache__", ".pytest_cache", ".antigravity_preview",
+    ".antigravity_snapshots", ".antigravity_state",
+    "venv", ".venv", ".freebuff", "dist", "build", ".idea", ".vscode",
+}
+
+
 def get_recursive_file_tree(directory: str, max_depth: int = 4, current_depth: int = 0) -> List[Dict[str, Any]]:
     """Scan directory recursively, excluding heavy VCS and dependency caches."""
     items = []
-    ignored = {".git", "node_modules", "__pycache__", ".pytest_cache", ".antigravity_preview", "venv", ".venv"}
+    ignored = IGNORED_DIRS
     try:
         entries = sorted(os.scandir(directory), key=lambda e: (not e.is_dir(), e.name.lower()))
         for entry in entries:
@@ -187,6 +195,18 @@ def get_index():
     return FileResponse(index_path)
 
 
+# Per-role default models (overridable via LLM_MODEL / provider defaults).
+DEFAULT_ROLE_MODELS = {
+    "planning": "Llama3.2:3B",
+    "coding": "Qwen2.5-Coder:3B",
+    "testing": "Qwen2.5-Coder:3B",
+    "security": "Qwen2.5-Coder:3B",
+    "quality": "Llama3.2:3B",
+    "infrastructure": "Llama3.2:3B",
+    "embedding": "Nomic-Embed-Text",
+}
+
+
 @app.get("/api/status")
 def get_system_status() -> Dict[str, Any]:
     """Get system health and model telemetry."""
@@ -194,15 +214,9 @@ def get_system_status() -> Dict[str, Any]:
         "status": "ready",
         "ide_version": "2.5.0-BROWSER",
         "theme": "Antigravity Dark (GitHub #0d1117)",
-        "models": {
-            "planning": "Llama3.2:3B",
-            "coding": "Qwen2.5-Coder:3B",
-            "testing": "Qwen2.5-Coder:3B",
-            "security": "Qwen2.5-Coder:3B",
-            "quality": "Llama3.2:3B",
-            "infrastructure": "Llama3.2:3B",
-            "embedding": "Nomic-Embed-Text",
-        },
+        # Effective models (LLM_MODEL override / provider defaults applied), so
+        # the status panel always matches what the agents actually report.
+        "models": {role: resolve_model(default) for role, default in DEFAULT_ROLE_MODELS.items()},
         "quality_score": "99.2% (SOLID compliant)",
         "security_score": "0 vulnerabilities (OWASP Top 10 passed)",
         # Effective LLM backend (hosted provider API key, or local Ollama).
@@ -463,6 +477,184 @@ def reject_generated_code(req: AcceptRejectRequest) -> Dict[str, Any]:
         "status": "rejected",
         "message": "Generated code discarded. Please enter feedback or an updated prompt.",
     }
+
+
+# ==============================================================================
+# IDE Panels: Search, Source Control, Run & Debug
+# ==============================================================================
+@app.get("/api/search")
+def search_files(q: str = "") -> Dict[str, Any]:
+    """Search file names and file contents for a query string.
+
+    Returns up to 100 matches with line numbers + snippets so the IDE Search
+    panel can jump straight to the hit. Binary-looking files are skipped.
+    """
+    term = q.strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="Query parameter 'q' is required.")
+
+    term_lower = term.lower()
+    results: List[Dict[str, Any]] = []
+
+    def walk(directory: str, depth: int) -> None:
+        if depth > 5 or len(results) >= 100:
+            return
+        try:
+            entries = sorted(os.scandir(directory), key=lambda e: e.name.lower())
+        except OSError:
+            return
+        for entry in entries:
+            if len(results) >= 100:
+                return
+            if entry.name in IGNORED_DIRS:
+                continue
+            rel = os.path.relpath(entry.path, BASE_DIR).replace("\\", "/")
+            if entry.is_dir():
+                walk(entry.path, depth + 1)
+                continue
+            # Filename match
+            if term_lower in entry.name.lower():
+                results.append({"path": rel, "type": "filename", "matches": []})
+            # Content match (text files only, cap size)
+            try:
+                if entry.stat().st_size > 512 * 1024:
+                    continue
+                with open(entry.path, "r", encoding="utf-8", errors="ignore") as fh:
+                    for line_no, line in enumerate(fh, 1):
+                        if term_lower in line.lower():
+                            results.append({
+                                "path": rel,
+                                "type": "content",
+                                "matches": [{"line": line_no, "snippet": line.strip()[:160]}],
+                            })
+                            break
+            except (OSError, UnicodeDecodeError):
+                continue
+
+    walk(BASE_DIR, 0)
+    return {"status": "success", "query": term, "count": len(results), "results": results[:100]}
+
+
+@app.get("/api/git/status")
+def git_status() -> Dict[str, Any]:
+    """Read-only git snapshot: current branch, short status, and recent commits.
+
+    Never mutates the repository — only runs read-only git commands. If the
+    workspace is not a git repository, returns an informative error state.
+    """
+    import subprocess
+
+    def run(cmd: List[str], timeout: int = 10) -> Optional[str]:
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=BASE_DIR)
+            if proc.returncode == 0:
+                # rstrip only — a leading space is meaningful in `git status
+                # --short` output (col 0 = index state), and .strip() would eat
+                # it off the first line and corrupt every parsed path.
+                return (proc.stdout or "").rstrip()
+            return None
+        except Exception:
+            return None
+
+    branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    if branch is None:
+        return {"status": "error", "message": "Not a git repository (or git is not installed).", "branch": None, "changes": [], "commits": []}
+
+    raw_status = run(["git", "status", "--short"]) or ""
+    changes = []
+    for line in raw_status.splitlines():
+        if not line.strip():
+            continue
+        changes.append({"code": line[:2], "path": line[3:].strip()})
+
+    raw_log = run(["git", "log", "--oneline", "-5"]) or ""
+    commits = [c.strip() for c in raw_log.splitlines() if c.strip()]
+
+    return {
+        "status": "success",
+        "branch": branch,
+        "changes": changes,
+        "commits": commits,
+        "dirty_count": sum(1 for c in changes if c["code"].strip()),
+    }
+
+
+DEBUG_TARGETS = {
+    "compile-check": {
+        "label": "Compile Check (py_compile)",
+        "cmd": ["python", "-m", "py_compile", "server.py", "llm.py", "orchestrator.py", "core/canonical_orchestrator.py", "core/agent_base.py", "gui/api/main.py"],
+        "timeout": 60,
+    },
+    "smoke": {
+        "label": "Smoke Tests (smoke_test.py)",
+        "cmd": ["python", "smoke_test.py"],
+        "timeout": 300,
+    },
+    "pytest": {
+        "label": "Full Test Suite (pytest -q)",
+        "cmd": ["python", "-m", "pytest", "-q"],
+        "timeout": 600,
+    },
+}
+
+
+@app.get("/api/debug/targets")
+def debug_targets() -> Dict[str, Any]:
+    """List whitelisted run/debug targets (no arbitrary command execution)."""
+    return {
+        "status": "success",
+        "targets": [
+            {"id": tid, "label": info["label"], "timeout": info["timeout"]}
+            for tid, info in DEBUG_TARGETS.items()
+        ],
+    }
+
+
+class DebugRunRequest(BaseModel):
+    target: str = Field(..., description="Whitelisted target id from GET /api/debug/targets")
+
+
+@app.post("/api/debug/run")
+def debug_run(req: DebugRunRequest) -> Dict[str, Any]:
+    """Run a whitelisted dev target with a hard timeout and return its output.
+
+    Only the targets defined in DEBUG_TARGETS can ever be executed — arbitrary
+    commands from the client are rejected with 400.
+    """
+    import subprocess
+
+    info = DEBUG_TARGETS.get(req.target)
+    if not info:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown target '{req.target}'. Valid targets: {sorted(DEBUG_TARGETS)}",
+        )
+    started = time.time()
+    try:
+        proc = subprocess.run(
+            info["cmd"],
+            capture_output=True,
+            text=True,
+            timeout=info["timeout"],
+            cwd=BASE_DIR,
+        )
+        output = (proc.stdout or "") + (proc.stderr or "")
+        return {
+            "status": "success" if proc.returncode == 0 else "failed",
+            "target": req.target,
+            "exit_code": proc.returncode,
+            "elapsed_seconds": round(time.time() - started, 1),
+            "output": output[-6000:],
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "status": "timeout",
+            "target": req.target,
+            "elapsed_seconds": round(time.time() - started, 1),
+            "output": f"Timed out after {info['timeout']}s — the target is still running elsewhere.",
+        }
+    except Exception as err:
+        return {"status": "error", "target": req.target, "exit_code": -1, "output": str(err)}
 
 
 # ==============================================================================

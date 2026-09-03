@@ -167,6 +167,15 @@ class TestFastAPIServer:
             assert role in models, f"missing model mapping for {role}"
             assert models[role], f"empty model name for {role}"
 
+    def test_api_status_models_reflect_llm_model_override(self, monkeypatch):
+        """/api/status model telemetry must honour LLM_MODEL, matching agent results."""
+        monkeypatch.setenv("LLM_MODEL", "override-test-model")
+        resp = client.get("/api/status")
+        assert resp.status_code == 200
+        models = resp.json()["models"]
+        assert models["coding"] == "override-test-model"
+        assert models["embedding"] == "override-test-model"
+
     def test_get_files_tree_and_file_read(self):
         """GET /api/files returns the explorer tree; GET /api/file reads content."""
         resp = client.get("/api/files")
@@ -185,20 +194,32 @@ class TestFastAPIServer:
         assert "FastAPI" in body["content"]
 
     def test_gui_agents_registry_list(self):
-        """GET /api/v1/agents/list returns the GUI agent registry contract."""
+        """GET /api/v1/agents/list returns the REAL six core agents with live models."""
         with TestClient(gui_app) as c:
             resp = c.get("/api/v1/agents/list")
         assert resp.status_code == 200
         data = resp.json()
         agents = data.get("agents", [])
-        assert data["total"] == len(agents) >= 1
+        assert data["total"] == len(agents) == 6
+        ids = [a["id"] for a in agents]
+        # The real core swarm, deterministic order.
+        assert ids == ["coding", "testing", "security", "quality", "infrastructure", "embedding"]
         for agent in agents:
             assert agent["id"]
             assert agent["name"]
             assert "level" in agent
-            assert "status" in agent
-        # The registry is deterministic: the GUI orchestrator is always first.
-        assert agents[0]["id"] == "G1_GUI_ORCHESTRATOR"
+            assert agent["status"] == "ACTIVE"
+            assert agent["model"], "every core agent must report a live model"
+
+    def test_gui_agents_registry_unknown_agent_404(self):
+        """GET /api/v1/agents/{id} returns 404 for agents that do not exist."""
+        with TestClient(gui_app) as c:
+            resp = c.get("/api/v1/agents/G1_GUI_ORCHESTRATOR")
+        assert resp.status_code == 404
+        with TestClient(gui_app) as c:
+            known = c.get("/api/v1/agents/coding")
+        assert known.status_code == 200
+        assert known.json()["agent"]["id"] == "coding"
 
     def test_gui_run_single_agent(self):
         """POST /run dispatches a task to one core agent through Core6Orchestrator."""
