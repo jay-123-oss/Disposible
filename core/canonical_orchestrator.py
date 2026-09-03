@@ -37,6 +37,13 @@ from core.intent_engine import (
 )
 from core.tools import ToolManager
 from core.tools.base import SafetyLevel, ToolResult
+from agents.coding_agent import CodingAgent
+from agents.embedding_agent import EmbeddingAgent
+from agents.infrastructure_agent import InfrastructureAgent
+from agents.quality_agent import QualityAgent
+from agents.security_agent import SecurityAgent
+from agents.testing_agent import TestingAgent
+from llm import get_llm_status, is_key_configured
 
 logger = logging.getLogger("AIhenge.CanonicalOrchestrator")
 
@@ -733,32 +740,52 @@ class CanonicalOrchestrator:
         execution_results = await self.execute_task_graph(graph, event_callback=event_callback)
 
         # Step 5: Synthesize Response
-        if intent_res.intent == IntentType.EXPLAIN:
-            summary = (
-                "### 🚀 Antigravity+ Project Architecture Overview\n\n"
-                "The workspace is an autonomous multi-agent software engineering environment:\n"
-                "- **UI Shell:** Electron borderless window with React 18, Monaco diff viewer, and PTY terminal.\n"
-                "- **Layer 1:** Intent classification (`core/intent_engine.py`) enforcing read-only safety.\n"
-                "- **Layer 2 & 3:** Canonical Orchestrator (`core/canonical_orchestrator.py`) with dynamic TaskGraphs and Agent Capability Registry.\n"
-                "- **Layer 4:** Central Tool Manager (`core/tools/`) with `SAFE`, `CAUTION`, and `DANGEROUS` policy gates.\n\n"
-                "No files were created or modified during this explanation."
-            )
-        elif intent_res.intent == IntentType.ANALYZE:
-            summary = (
-                "### 🔍 Codebase Inspection & Bug Analysis\n\n"
-                "Analyzed active workspace components. Code syntax across `core/` and tests is clean. "
-                "No unexpected modifications or unhandled exceptions detected in active test suites."
-            )
-        elif intent_res.intent == IntentType.TEST:
-            summary = "### ⚡ Test Suite Execution Complete\n\nAutomated tests executed cleanly via pytest."
-        elif intent_res.intent == IntentType.CREATE:
-            if execution_results["staged_files"]:
-                target_names = list(execution_results["staged_files"].keys())
-                summary = f"### ✅ File Created and Staged\n\nTarget file `{target_names[0]}` has been generated and staged for review."
+        # When a hosted LLM API key is configured, EXPLAIN / ANALYZE / DEBUG
+        # answers are produced by the real 6-agent swarm (llm.py gateway) from
+        # the user prompt + actual workspace context — not canned templates.
+        # Offline / local-Ollama setups keep the deterministic summaries, and
+        # the file staging / accept flow below is untouched.
+        summary = ""
+        if intent_res.intent in (IntentType.EXPLAIN, IntentType.ANALYZE, IntentType.DEBUG) and is_key_configured():
+            try:
+                summary = await self._synthesize_agent_response(
+                    prompt,
+                    intent_res.intent.value,
+                    context,
+                    execution_results.get("staged_files", {}),
+                )
+            except Exception as exc:
+                logger.warning("Real-agent synthesis failed (%s); using deterministic summary", exc)
+
+        # Deterministic summaries remain the fallback for every other case
+        # (CREATE / TEST intents, or when no hosted API key is configured).
+        if not summary:
+            if intent_res.intent == IntentType.EXPLAIN:
+                summary = (
+                    "### 🚀 Antigravity+ Project Architecture Overview\n\n"
+                    "The workspace is an autonomous multi-agent software engineering environment:\n"
+                    "- **UI Shell:** Electron borderless window with React 18, Monaco diff viewer, and PTY terminal.\n"
+                    "- **Layer 1:** Intent classification (`core/intent_engine.py`) enforcing read-only safety.\n"
+                    "- **Layer 2 & 3:** Canonical Orchestrator (`core/canonical_orchestrator.py`) with dynamic TaskGraphs and Agent Capability Registry.\n"
+                    "- **Layer 4:** Central Tool Manager (`core/tools/`) with `SAFE`, `CAUTION`, and `DANGEROUS` policy gates.\n\n"
+                    "No files were created or modified during this explanation."
+                )
+            elif intent_res.intent == IntentType.ANALYZE:
+                summary = (
+                    "### 🔍 Codebase Inspection & Bug Analysis\n\n"
+                    "Analyzed active workspace components. Code syntax across `core/` and tests is clean. "
+                    "No unexpected modifications or unhandled exceptions detected in active test suites."
+                )
+            elif intent_res.intent == IntentType.TEST:
+                summary = "### ⚡ Test Suite Execution Complete\n\nAutomated tests executed cleanly via pytest."
+            elif intent_res.intent == IntentType.CREATE:
+                if execution_results["staged_files"]:
+                    target_names = list(execution_results["staged_files"].keys())
+                    summary = f"### ✅ File Created and Staged\n\nTarget file `{target_names[0]}` has been generated and staged for review."
+                else:
+                    summary = "### ⚠️ Clarification Required\n\nPlease specify the filename and extension for the new file (for example: `jaydeeo.py` or `main.js`)."
             else:
-                summary = "### ⚠️ Clarification Required\n\nPlease specify the filename and extension for the new file (for example: `jaydeeo.py` or `main.js`)."
-        else:
-            summary = f"Task completed under intent '{intent_res.intent.value}'."
+                summary = f"Task completed under intent '{intent_res.intent.value}'."
 
         return {
             "status": "success",
@@ -770,3 +797,123 @@ class CanonicalOrchestrator:
             "summary": summary,
             "elapsed_s": round(time.time() - start_time, 2),
         }
+
+    # --------------------------------------------------------------------------
+    # Real 6-Agent Response Synthesis (API-key LLM backend via llm.py)
+    # --------------------------------------------------------------------------
+
+    @staticmethod
+    def _truncate(text: str, limit: int) -> str:
+        """Cut a long agent reply at a word boundary near ``limit`` chars."""
+        if len(text) <= limit:
+            return text
+        cut = text.rfind(" ", 0, limit)
+        if cut < limit // 2:
+            cut = limit
+        return text[:cut].rstrip() + "\n…(truncated)"
+
+    def _build_context_digest(self, prompt: str, context: Dict[str, Any]) -> str:
+        """Compact, real workspace snippets (from the context engine's selected
+        files) so the agents analyse actual code instead of hallucinating."""
+        del prompt
+        selected = context.get("selected_files") or []
+        budget = 6000
+        parts: List[str] = []
+        used = 0
+        for rel in selected:
+            if len(parts) >= 3 or used >= budget:
+                break
+            rel = str(rel).replace("\\", "/")
+            if rel.startswith(("..", ".git")):
+                continue
+            full = os.path.join(self.workspace_root, rel)
+            try:
+                if not os.path.isfile(full):
+                    continue
+                with open(full, "r", encoding="utf-8", errors="replace") as fh:
+                    content = fh.read(12000)
+                if "\x00" in content[:2048]:
+                    continue  # binary file
+                snippet = content[: budget - used]
+                if not snippet.strip():
+                    continue
+                parts.append(f"--- {rel} ---\n{snippet}")
+                used += len(snippet)
+            except OSError:
+                continue
+        return "\n\n".join(parts)
+
+    async def _synthesize_agent_response(
+        self,
+        prompt: str,
+        intent_label: str,
+        context: Dict[str, Any],
+        staged_files: Dict[str, str],
+    ) -> str:
+        """Run the six core API-key agents in parallel against the user prompt +
+        real workspace context, then assemble a labelled swarm answer.
+
+        Returns "" (so the caller falls back to the deterministic summary) when
+        the backend is unreachable and every agent returned its offline template.
+        """
+        digest = self._build_context_digest(prompt, context)
+        staged_note = ""
+        if staged_files:
+            staged_note = "\n[Files staged for review] " + ", ".join(staged_files.keys())
+        task = (
+            f"[User request]\n{prompt}\n\n"
+            f"[Request type] {intent_label}\n"
+            f"[Workspace context]\n{digest or '(no files selected)'}{staged_note}"
+        )
+
+        agents = [
+            CodingAgent(),
+            TestingAgent(),
+            SecurityAgent(),
+            QualityAgent(),
+            InfrastructureAgent(),
+            EmbeddingAgent(),
+        ]
+        # Six independent model calls; run concurrently so the reply waits for
+        # the slowest agent instead of the sum of all six.
+        gathered = await asyncio.gather(
+            *(asyncio.to_thread(agent.run, task) for agent in agents),
+            return_exceptions=True,
+        )
+        outputs: Dict[str, str] = {}
+        for agent, res in zip(agents, gathered):
+            if isinstance(res, Exception) or not isinstance(res, dict):
+                logger.warning("Agent %s failed during synthesis: %s", agent.agent_id, res)
+                continue
+            outputs[agent.agent_id] = str(res.get("output", "") or "").strip()
+
+        coding_out = outputs.get("coding", "")
+        # The offline fallback template always starts with this marker — if the
+        # backend is unreachable (bad key / no network) every agent returns it,
+        # so degrade to the deterministic summary instead of echoing templates.
+        if "# Solution for:" in coding_out:
+            return ""
+
+        section_labels = {
+            "coding": "💻 Coding Agent",
+            "testing": "🧪 Testing Agent",
+            "security": "🛡️ Security Agent",
+            "quality": "⭐ Quality Agent",
+            "infrastructure": "⚙️ Infrastructure Agent",
+        }
+        status = get_llm_status()
+        header = (
+            f"### 🤖 {intent_label.capitalize()} — Real Analysis by 6-Agent Swarm\n\n"
+            f"*Backend: {status.get('provider')} · {status.get('model') or 'default model'}*\n\n"
+        )
+        sections: List[str] = []
+        if coding_out:
+            sections.append(f"{section_labels['coding']}\n\n{self._truncate(coding_out, 6000)}")
+        for aid in ("testing", "security", "quality", "infrastructure"):
+            text = outputs.get(aid, "")
+            # Skip near-empty or purely decorative agent echoes.
+            if len(text) >= 60:
+                sections.append(f"{section_labels[aid]}\n\n{self._truncate(text, 3000)}")
+        if not sections:
+            return ""
+        return header + "\n\n".join(sections)

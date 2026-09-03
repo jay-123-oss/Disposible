@@ -132,6 +132,43 @@ class TestTools:
 
 
 class TestFastAPIServer:
+    """API-level tests.
+
+    The circle-to-edit / preview endpoints write to the PreviewManager's
+    ``.antigravity_preview`` folder, which defaults to the *repo working
+    directory*. That shared mutable state is what made this class flaky under
+    the full suite / smoke runs: writes to a OneDrive-synced workspace can
+    intermittently raise file-lock errors (HTTP 500), and concurrent imports
+    snapshot the same files. These tests therefore isolate the preview manager
+    into a per-test tmp dir and stub the coding agent so no ambient LLM
+    configuration or network is ever involved.
+    """
+
+    def _isolate_runtime(self, monkeypatch, tmp_path):
+        """Point the server's preview manager at tmp and stub the coding agent."""
+        import antigravity_plus.src.server as srv
+        from antigravity_plus.src.tools.preview_tools import PreviewManager
+
+        monkeypatch.setattr(srv, "preview_manager", PreviewManager(str(tmp_path / "preview")))
+
+        class _StubCoding:
+            """Deterministic, offline coding agent: returns real HTML directly."""
+
+            def run(self, task, context=None):
+                return {
+                    "success": True,
+                    "agent": "coding",
+                    "model": "stub",
+                    "output": (
+                        "<!DOCTYPE html><html><body>"
+                        "<h1 style='color:#06b6d4'>Cyan heading</h1>"
+                        "</body></html>"
+                    ),
+                }
+
+        monkeypatch.setitem(srv.AGENTS_POOL, "coding", _StubCoding())
+        return srv
+
     def test_health_endpoint(self):
         resp = client.get("/api/health")
         assert resp.status_code == 200
@@ -144,7 +181,8 @@ class TestFastAPIServer:
         assert resp.status_code == 200
         assert "files" in resp.json()
 
-    def test_circle_to_edit_endpoint(self):
+    def test_circle_to_edit_endpoint(self, monkeypatch, tmp_path):
+        srv = self._isolate_runtime(monkeypatch, tmp_path)
         resp = client.post("/api/circle-to-edit", json={
             "x": 100.0,
             "y": 150.0,
@@ -155,8 +193,15 @@ class TestFastAPIServer:
         data = resp.json()
         assert data["success"] is True
         assert data["preview_reloaded"] is True
+        # The patched HTML actually landed in the isolated tmp preview dir,
+        # never in the repo working directory.
+        assert (tmp_path / "preview" / "index.html").exists()
+        content = (tmp_path / "preview" / "index.html").read_text(encoding="utf-8")
+        assert "<h1" in content or "color" in content
+        assert str(srv.preview_manager.preview_dir).startswith(str(tmp_path))
 
-    def test_preview_endpoint(self):
+    def test_preview_endpoint(self, monkeypatch, tmp_path):
+        self._isolate_runtime(monkeypatch, tmp_path)
         resp = client.get("/preview")
         assert resp.status_code == 200
         assert "html" in resp.headers.get("content-type", "").lower()

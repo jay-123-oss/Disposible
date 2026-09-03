@@ -5,7 +5,7 @@ Implements:
 - Subagent spawning with strict max_depth enforcement (Rule 5: parent -> child -> grandchild).
 - Parent-child tree relationship tracking.
 - Tool registration and deterministic dispatch.
-- Direct Ollama REST interface for local LLM inference with fallback.
+- Unified LLM gateway (llm.py) for provider-agnostic inference with fallback.
 """
 
 from __future__ import annotations
@@ -16,9 +16,8 @@ import logging
 import uuid
 from typing import Any, Callable, Dict, List, Optional
 
-import requests
-
 from core.exceptions import AgentError, DepthLimitError
+from llm import generate_text, resolve_provider
 
 
 logger = logging.getLogger("FractalCore.AgentBase")
@@ -238,7 +237,12 @@ class BaseAgent(abc.ABC):
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> str:
-        """Send inference request to local Ollama instance with timeout and fallback.
+        """Send inference request through the unified LLM gateway (llm.py).
+
+        The gateway resolves the active provider from configuration / environment
+        (any hosted API key, or the local Ollama runtime). When the backend is
+        unreachable or misconfigured the agent falls back to a deterministic
+        simulation so the lifecycle never hard-fails.
 
         Args:
             prompt: User/task instruction string.
@@ -249,38 +253,22 @@ class BaseAgent(abc.ABC):
         Returns:
             Generated text content from the LLM.
         """
-        url = f"{self._llm_endpoint}/api/generate"
-        payload = {
-            "model": self._model,
-            "prompt": prompt,
-            "system": system_prompt or f"You are {self._name}, a specialized autonomous coding agent.",
-            "stream": False,
-            "options": {
-                "temperature": temperature,
-                "num_predict": max_tokens,
-            },
-        }
-
-        try:
-            response = requests.post(url, json=payload, timeout=60)
-            if response.status_code == 200:
-                data = response.json()
-                content = data.get("response", "").strip()
-                logger.debug("LLM query succeeded on model %s (%d chars)", self._model, len(content))
-                return content
-            logger.warning(
-                "Ollama returned HTTP %d: %s. Falling back to deterministic simulation.",
-                response.status_code,
-                response.text,
-            )
-            return self._fallback_deterministic_response(prompt)
-        except requests.RequestException as req_err:
-            logger.warning(
-                "Could not reach Ollama at %s (%s). Using deterministic fallback.",
-                self._llm_endpoint,
-                req_err,
-            )
-            return self._fallback_deterministic_response(prompt)
+        content = generate_text(
+            prompt=prompt,
+            system=system_prompt or f"You are {self._name}, a specialized autonomous coding agent.",
+            model=self._model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        if content:
+            logger.debug("LLM query succeeded on model %s (%d chars)", self._model, len(content))
+            return content
+        logger.warning(
+            "LLM backend unavailable (provider=%s, model=%s). Using deterministic fallback.",
+            resolve_provider(),
+            self._model,
+        )
+        return self._fallback_deterministic_response(prompt)
 
     def _fallback_deterministic_response(self, prompt: str) -> str:
         """Deterministic rule-based response generator when local Ollama is offline."""

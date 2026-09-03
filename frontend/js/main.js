@@ -159,22 +159,26 @@ window.AntigravityApp = (function () {
     });
   }
 
-  function loadFile(filePath) {
+  function openContent(filePath, content) {
     activeFilePath = filePath;
     const title = document.getElementById('active-file-title');
     if (title) title.textContent = `Antigravity IDE - ${filePath}`;
 
+    AntigravityEditor.openFile(filePath, content);
+    addEditorTab(filePath);
+    AntigravityTerminal.appendLine(`[Editor] Opened ${filePath}`, 'info');
+
+    if (filePath.endsWith('.html') || filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      refreshPreview();
+    }
+  }
+
+  function loadFile(filePath) {
     fetch(`/api/file/${encodeURIComponent(filePath)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.status === 'success') {
-          AntigravityEditor.openFile(filePath, data.content);
-          addEditorTab(filePath);
-          AntigravityTerminal.appendLine(`[Editor] Opened ${filePath}`, 'info');
-
-          if (filePath.endsWith('.html') || filePath.endsWith('.css') || filePath.endsWith('.js')) {
-            refreshPreview();
-          }
+          openContent(filePath, data.content);
         }
       })
       .catch((err) => {
@@ -260,6 +264,7 @@ window.AntigravityApp = (function () {
     init,
     refreshFiles,
     loadFile,
+    openContent,
     refreshPreview,
   };
 })();

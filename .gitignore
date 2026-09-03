@@ -34,3 +34,6 @@ build/
 .cache/
 .vscode/
 .idea/
+
+# Freebuff harness runtime state (preview logs, run docs, project id)
+.freebuff/

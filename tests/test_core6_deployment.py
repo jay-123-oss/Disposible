@@ -15,6 +15,7 @@ from agents.security_agent import SecurityAgent
 from agents.testing_agent import TestingAgent
 from orchestrator import Core6Orchestrator
 from server import app
+from gui.api.main import app as gui_app
 from utils.colab_utils import ColabDeployer
 from utils.kaggle_utils import KaggleDeployer
 from utils.notebook_generator import (
@@ -126,55 +127,204 @@ class TestCoreOrchestrator:
 
 
 class TestFastAPIServer:
-    """Validate all server endpoints including OpenAI compatibility."""
+    """End-to-end validation of the REAL API surfaces.
 
-    def test_get_root(self):
+    server.py      -> GET /, /api/status, /api/files, /api/file, /api/chat,
+                      /api/staged-file, /api/accept, /api/reject, /ws
+    gui/api/main.py -> POST /run, POST /run-all, GET /api/v1/agents/list
+
+    Each test drives a live endpoint through TestClient and asserts its actual
+    response contract (no fake/aspirational endpoints such as /agents, /status,
+    /run-all on server.py, or /v1/chat/completions).
+    """
+
+    PROBE = "qa_core6_probe.py"
+    REJECT = "qa_core6_reject.py"
+    WS_PROBE = "qa_core6_ws.py"
+
+    def _cleanup(self):
+        for name in (self.PROBE, self.REJECT, self.WS_PROBE):
+            if os.path.exists(name):
+                os.remove(name)
+
+    def test_get_root_serves_ide_frontend(self):
+        """GET / on server.py serves the IDE single-page frontend (HTML)."""
         resp = client.get("/")
         assert resp.status_code == 200
-        data = resp.json()
-        assert data["status"] == "online"
+        assert "text/html" in resp.headers.get("content-type", "")
+        assert "Antigravity" in resp.text
 
-    def test_get_agents(self):
-        resp = client.get("/agents")
+    def test_get_api_status_reports_models_and_health(self):
+        """GET /api/status reports a ready system and the 6-agent model map."""
+        resp = client.get("/api/status")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["count"] == 6
+        assert data["status"] == "ready"
+        assert data.get("ide_version")
+        models = data.get("models", {})
+        # The six core swarm agents (plus planning/embedding) must be mapped to real models.
+        for role in ("planning", "coding", "testing", "security", "quality", "infrastructure", "embedding"):
+            assert role in models, f"missing model mapping for {role}"
+            assert models[role], f"empty model name for {role}"
 
-    def test_get_status(self):
-        resp = client.get("/status")
+    def test_get_files_tree_and_file_read(self):
+        """GET /api/files returns the explorer tree; GET /api/file reads content."""
+        resp = client.get("/api/files")
         assert resp.status_code == 200
         data = resp.json()
-        assert "total_ram_required" in data
-        assert "models" in data
+        assert data["status"] == "success"
+        top_level = {entry["name"]: entry for entry in data.get("files", [])}
+        assert "server.py" in top_level
+        for entry in data["files"]:
+            assert "name" in entry and "path" in entry and "isDirectory" in entry
 
-    def test_post_run_single(self):
-        resp = client.post("/run", json={"task": "Create healthcheck", "agent": "coding"})
+        file_resp = client.get("/api/file/server.py")
+        assert file_resp.status_code == 200
+        body = file_resp.json()
+        assert body["status"] == "success"
+        assert "FastAPI" in body["content"]
+
+    def test_gui_agents_registry_list(self):
+        """GET /api/v1/agents/list returns the GUI agent registry contract."""
+        with TestClient(gui_app) as c:
+            resp = c.get("/api/v1/agents/list")
+        assert resp.status_code == 200
+        data = resp.json()
+        agents = data.get("agents", [])
+        assert data["total"] == len(agents) >= 1
+        for agent in agents:
+            assert agent["id"]
+            assert agent["name"]
+            assert "level" in agent
+            assert "status" in agent
+        # The registry is deterministic: the GUI orchestrator is always first.
+        assert agents[0]["id"] == "G1_GUI_ORCHESTRATOR"
+
+    def test_gui_run_single_agent(self):
+        """POST /run dispatches a task to one core agent through Core6Orchestrator."""
+        with TestClient(gui_app) as c:
+            resp = c.post("/run", json={"task": "Create healthcheck", "agent": "coding"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["agent"] == "coding"
+        assert data["model"] == "qwen2.5-coder:3b"
+        assert data.get("output")  # real output (Ollama response or offline fallback)
+        assert "latency_seconds" in data
 
-    def test_post_run_all(self):
-        resp = client.post("/run-all", json={"task": "Deploy microservice"})
+    def test_gui_run_all_agents(self):
+        """POST /run-all executes the full 6-agent pipeline and returns each result."""
+        with TestClient(gui_app) as c:
+            resp = c.post("/run-all", json={"task": "Deploy microservice"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["total_agents"] == 6
+        results = data.get("results", {})
+        assert set(results.keys()) == {"coding", "testing", "security", "quality", "infrastructure", "embedding"}
+        for agent_id, agent_result in results.items():
+            assert agent_result["success"] is True, f"{agent_id} failed: {agent_result}"
 
-    def test_post_openai_chat_completions(self):
-        payload = {
-            "model": "coding-agent",
-            "messages": [
-                {"role": "system", "content": "You are helpful"},
-                {"role": "user", "content": "Create a python hello world function"},
-            ],
-        }
-        resp = client.post("/v1/chat/completions", json=payload)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["object"] == "chat.completion"
-        assert len(data["choices"]) > 0
-        assert "content" in data["choices"][0]["message"]
+    def test_chat_mutation_accept_lifecycle(self):
+        """POST /api/chat -> staged content map + deltas -> staged-file preview -> accept/reject."""
+        self._cleanup()
+        try:
+            # --- chat stages a file (nothing written to disk yet) -------------------
+            resp = client.post(
+                "/api/chat",
+                json={"prompt": f"create {self.PROBE} hello world", "session_id": "core6-acc"},
+            )
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["status"] == "success"
+            assert body["intent"] == "CREATE"
+            assert body["execution_mode"] == "MUTATION"
+            assert body["files_count"] == 1
+
+            files = body["files"]
+            assert isinstance(files, dict), "files must be a {path: content} map"
+            assert self.PROBE in files
+            assert "Hello" in files[self.PROBE]
+            assert not os.path.exists(self.PROBE), "staged files must not hit disk before accept"
+
+            deltas = body["deltas"]
+            assert len(deltas) == 1
+            assert deltas[0]["path"] == self.PROBE
+            assert deltas[0]["status"] == "CREATED"
+            assert deltas[0]["linesAdded"] >= 1
+            assert deltas[0]["linesDeleted"] == 0
+
+            # --- staged-file endpoint serves the not-yet-written content -------------
+            staged = client.get(
+                "/api/staged-file",
+                params={"session_id": "core6-acc", "path": self.PROBE},
+            )
+            assert staged.status_code == 200
+            staged_body = staged.json()
+            assert staged_body["status"] == "success"
+            assert staged_body["staged"] is True
+            assert "Hello" in staged_body["content"]
+
+            # --- accept commits the file to disk -------------------------------------
+            accepted = client.post("/api/accept", json={"session_id": "core6-acc"})
+            assert accepted.status_code == 200
+            assert accepted.json()["status"] == "success"
+            assert self.PROBE in accepted.json()["committed_files"]
+            assert os.path.exists(self.PROBE)
+            with open(self.PROBE, encoding="utf-8") as f:
+                assert "Hello" in f.read()
+
+            # --- reject discards a separate staged file -------------------------------
+            chat2 = client.post(
+                "/api/chat",
+                json={"prompt": f"create {self.REJECT} hello world", "session_id": "core6-rej"},
+            )
+            assert chat2.json()["files_count"] == 1
+            rejected = client.post("/api/reject", json={"session_id": "core6-rej"})
+            assert rejected.json()["status"] == "rejected"
+            assert not os.path.exists(self.REJECT)
+        finally:
+            self._cleanup()
+
+    def test_websocket_chat_stream_and_accept(self):
+        """/ws streams real orchestrator events and accepts staged files end to end."""
+        self._cleanup()
+        try:
+            with TestClient(app) as c:
+                with c.websocket_connect("/ws") as ws:
+                    greeting = ws.receive_json()
+                    assert greeting["type"] == "agent_message"
+                    assert greeting["sender"] == "agent"
+
+                    ws.send_json({"action": "chat", "prompt": f"create {self.WS_PROBE} hello world"})
+                    event_types = []
+                    completed = None
+                    for _ in range(40):
+                        msg = ws.receive_json()
+                        event_types.append(msg["type"])
+                        if msg["type"] == "swarm_completed":
+                            completed = msg
+                            break
+                    assert completed is not None, f"no swarm_completed; events={event_types}"
+                    assert self.WS_PROBE in completed["files"]
+                    assert len(completed.get("deltas") or []) == 1
+                    assert "status_update" in event_types  # real-time stream observed
+
+                    ws.send_json({"action": "accept"})
+                    action_result = None
+                    for _ in range(5):
+                        msg = ws.receive_json()
+                        if msg["type"] == "action_result":
+                            action_result = msg
+                            break
+                    assert action_result is not None
+                    assert action_result["status"] == "accepted"
+                    assert self.WS_PROBE in action_result["files"]
+                    assert os.path.exists(self.WS_PROBE)
+                    with open(self.WS_PROBE, encoding="utf-8") as f:
+                        assert "Hello" in f.read()
+        finally:
+            self._cleanup()
 
 
 class TestNotebookGenerator:

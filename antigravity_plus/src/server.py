@@ -72,8 +72,15 @@ env_manager = DisposableEnvironmentManager(base_workspace=WORKSPACE_DIR)
 preview_manager = PreviewManager()
 browser_tool = BrowserAutomationTool()
 
-# Create initial environment snapshot
-env_manager.create_snapshot("initial")
+# Create initial environment snapshot (best-effort, once). Snapshotting the
+# whole workspace on EVERY import churns the disk, re-copies IDE scratch dirs,
+# and can lock/collide on Windows — so skip it when a baseline already exists
+# and never let a snapshot failure take the server (or the test suite) down.
+try:
+    if not (env_manager.snapshot_dir / "initial").exists():
+        env_manager.create_snapshot("initial")
+except Exception as exc:
+    logger.warning("Initial workspace snapshot skipped (%s)", exc)
 
 AGENTS_POOL = {
     "coding": CodingAgent(),
@@ -392,7 +399,13 @@ async def handle_circle_to_edit(req: CircleToEditRequest) -> Dict[str, Any]:
             output = output.split("```html")[1].split("```")[0].strip()
         elif "```" in output:
             output = output.split("```")[1].split("```")[0].strip()
-        return output if len(output) > 50 else html
+        # Only accept output that plausibly is HTML. When the agent falls back
+        # to plain text / code (e.g. no model reachable) keep the original HTML
+        # so the deterministic transformer below can still apply the edit — and
+        # the preview file is never overwritten with garbage.
+        if len(output) > 50 and "<" in output and ">" in output:
+            return output
+        return html
 
     res = preview_manager.apply_circle_to_edit(annotation, agent_patcher=_patcher)
     res["preview_reloaded"] = True

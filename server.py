@@ -10,11 +10,14 @@ Features:
 - POST /api/file/{path}   : Update / save file content
 - POST /api/accept        : Commit staged generated files to filesystem
 - POST /api/reject        : Discard staged files
+- GET  /api/settings/llm  : Live LLM gateway status + selectable providers
+- POST /api/settings/llm  : Save chosen LLM provider + API key to .env
 """
 
 from __future__ import annotations
 
 import asyncio
+import difflib
 import json
 import logging
 import os
@@ -32,12 +35,14 @@ from core.canonical_orchestrator import CanonicalOrchestrator
 from agents.orchestrator import AgentOrchestrator as LegacyMockAgentOrchestrator
 from core.continuity_engine import ContinuityEngine
 from core.self_healing import SelfHealingEngine
+from llm import PROVIDER_PRESETS, get_llm_status
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("AntigravityServer")
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+ENV_FILE = os.path.join(BASE_DIR, ".env")
 
 app = FastAPI(
     title="Antigravity+ IDE & Multi-Agent Backend",
@@ -80,6 +85,57 @@ class FileUpdateRequest(BaseModel):
 class AcceptRejectRequest(BaseModel):
     session_id: Optional[str] = Field("default", description="Client session identifier")
     feedback: Optional[str] = Field(None, description="Optional feedback on rejection")
+
+
+class LLMSettingsRequest(BaseModel):
+    provider: str = Field(..., description="Provider id from GET /api/settings/llm")
+    api_key: Optional[str] = Field(None, description="New API key to store (blank keeps the existing key)")
+    model: Optional[str] = Field(None, description="LLM_MODEL override; blank string clears the override")
+    base_url: Optional[str] = Field(None, description="LLM_BASE_URL override (needed for openai-compatible); blank clears")
+    clear_key: bool = Field(False, description="Remove the stored API key for this provider")
+
+
+# ==============================================================================
+# Staged File Deltas (Review UI contract)
+# ==============================================================================
+def build_staged_deltas(files: Dict[str, str]) -> List[Dict[str, Any]]:
+    """Describe staged files for the Accept/Reject review card.
+
+    Each entry mirrors the shape agent_chat.js renders:
+    { path, status: CREATED|MODIFIED, linesAdded, linesDeleted }
+    where line counts are computed against the file already on disk (if any).
+    """
+    deltas: List[Dict[str, Any]] = []
+    for rel_path, content in files.items():
+        full_path = os.path.abspath(os.path.join(BASE_DIR, rel_path))
+        if os.path.exists(full_path):
+            status = "MODIFIED"
+            try:
+                with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                    old_lines = f.read().splitlines()
+            except Exception:
+                old_lines = []
+        else:
+            status = "CREATED"
+            old_lines = []
+
+        new_lines = content.splitlines()
+        matcher = difflib.SequenceMatcher(None, old_lines, new_lines)
+        lines_added = 0
+        lines_deleted = 0
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag in ("insert", "replace"):
+                lines_added += j2 - j1
+            if tag in ("delete", "replace"):
+                lines_deleted += i2 - i1
+
+        deltas.append({
+            "path": rel_path,
+            "status": status,
+            "linesAdded": lines_added,
+            "linesDeleted": lines_deleted,
+        })
+    return deltas
 
 
 # ==============================================================================
@@ -149,6 +205,145 @@ def get_system_status() -> Dict[str, Any]:
         },
         "quality_score": "99.2% (SOLID compliant)",
         "security_score": "0 vulnerabilities (OWASP Top 10 passed)",
+        # Effective LLM backend (hosted provider API key, or local Ollama).
+        # Never exposes the API key itself — only masked + booleans.
+        "llm": get_llm_status(),
+    }
+
+
+# ==============================================================================
+# LLM Provider Settings (bring-your-own API key)
+# ==============================================================================
+PROVIDER_LABELS = {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic Claude",
+    "gemini": "Google Gemini",
+    "groq": "Groq",
+    "openrouter": "OpenRouter",
+    "mistral": "Mistral AI",
+    "together": "Together AI",
+    "xai": "xAI (Grok)",
+    "deepseek": "DeepSeek",
+    "ollama": "Local Ollama (no API key)",
+    "openai-compatible": "Any OpenAI-compatible endpoint",
+}
+
+
+def _merge_env_file(path: str, updates: Dict[str, Optional[str]]) -> None:
+    """Set/remove KEY=VALUE lines in an env file, preserving comments and order.
+
+    ``updates`` maps KEY -> new value, or KEY -> None to remove that line.
+    Keys not present in ``updates`` are left untouched.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            lines = fh.readlines()
+    except OSError:
+        lines = []
+    touched: Dict[str, str] = {}
+    out: List[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key = stripped.split("=", 1)[0].strip()
+            if key in updates:
+                touched[key] = updates[key] or ""
+                if updates[key] is None:
+                    continue  # drop the line
+                out.append(f"{key}={updates[key]}\n")
+                continue
+        out.append(line)
+    for key, value in updates.items():
+        if key in touched or value is None:
+            continue
+        out.append(f"{key}={value}\n")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.writelines(out)
+
+
+def _apply_llm_settings(
+    provider: str,
+    api_key: Optional[str],
+    model: Optional[str],
+    base_url: Optional[str],
+    clear_key: bool,
+) -> Dict[str, Any]:
+    """Persist the chosen provider/key into this process env AND the .env file.
+
+    os.environ is updated first so the running gateway picks the change up
+    immediately (llm.py resolves providers at call time); .env is kept in sync
+    so the choice survives restarts. Returns the names of keys that were written.
+    """
+    preset = PROVIDER_PRESETS.get(provider, {})
+    key_env = preset.get("key_env")
+    updates: Dict[str, Optional[str]] = {"LLM_PROVIDER": provider}
+    written: List[str] = ["LLM_PROVIDER"]
+
+    if api_key and key_env:
+        updates[key_env] = api_key
+        written.append(key_env)
+    elif clear_key and key_env:
+        updates[key_env] = None
+
+    if model is not None:
+        updates["LLM_MODEL"] = model or None
+        if model:
+            written.append("LLM_MODEL")
+    if base_url is not None:
+        updates["LLM_BASE_URL"] = base_url or None
+        if base_url:
+            written.append("LLM_BASE_URL")
+    elif provider != "openai-compatible" and os.environ.get("LLM_PROVIDER") != provider:
+        # Switching to a preset provider: drop any leftover custom base URL so
+        # it cannot silently redirect the new provider to a stale endpoint.
+        updates["LLM_BASE_URL"] = None
+
+    for key, value in updates.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    _merge_env_file(ENV_FILE, updates)
+    return {"stored_keys": sorted(written)}
+
+
+def _provider_option(pid: str) -> Dict[str, Any]:
+    preset = PROVIDER_PRESETS.get(pid, {})
+    return {
+        "id": pid,
+        "label": PROVIDER_LABELS.get(pid, pid.replace("-", " ").title()),
+        "key_env": preset.get("key_env"),
+        "default_model": preset.get("default_model"),
+        "supports_embeddings": bool(preset.get("supports_embeddings")),
+        "needs_base_url": pid == "openai-compatible",
+        "needs_key": pid != "ollama",
+    }
+
+
+@app.get("/api/settings/llm")
+def get_llm_settings() -> Dict[str, Any]:
+    """Return live LLM gateway status + selectable providers (no secrets, only masked)."""
+    return {
+        "status": "success",
+        "llm": get_llm_status(),
+        "providers": [_provider_option(pid) for pid in PROVIDER_PRESETS],
+    }
+
+
+@app.post("/api/settings/llm")
+def save_llm_settings(req: LLMSettingsRequest) -> Dict[str, Any]:
+    """Persist the chosen LLM provider + API key into the local .env (and this process)."""
+    if req.provider not in PROVIDER_PRESETS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown provider '{req.provider}'. Valid providers: {sorted(PROVIDER_PRESETS)}",
+        )
+    info = _apply_llm_settings(req.provider, req.api_key, req.model, req.base_url, req.clear_key)
+    return {
+        "status": "success",
+        "message": f"Provider settings saved to {os.path.basename(ENV_FILE)}.",
+        "llm": get_llm_status(),
+        **info,
     }
 
 
@@ -207,13 +402,30 @@ async def execute_chat(req: ChatPromptRequest) -> Dict[str, Any]:
     return {
         "status": "success",
         "prompt": req.prompt,
+        "session_id": session_id,
         "intent": result.get("intent"),
         "execution_mode": result.get("execution_mode"),
         "tasks_executed": result.get("tasks_executed", 0),
+        # Content map { relative_path: content }, matching CanonicalOrchestrator.execute_prompt
+        # so the Electron desktop renderer can stage & accept files through its IPC file gate.
+        "files": staged_files,
         "files_count": len(staged_files),
+        "deltas": build_staged_deltas(staged_files),
         "message": result.get("summary", ""),
         "summary": result.get("summary", ""),
     }
+
+
+@app.get("/api/staged-file")
+def read_staged_file(session_id: str = "default", path: str = "") -> Dict[str, Any]:
+    """Retrieve staged (not-yet-accepted) file content for review before Accept."""
+    files = staged_files_cache.get(session_id, {})
+    if path not in files:
+        raise HTTPException(status_code=404, detail=f"No staged file '{path}' for session '{session_id}'")
+    resolved = os.path.abspath(os.path.join(BASE_DIR, path))
+    if not resolved.startswith(BASE_DIR):
+        raise HTTPException(status_code=403, detail="Access denied")
+    return {"status": "success", "path": path, "content": files[path], "staged": True}
 
 
 @app.post("/api/accept")
@@ -298,15 +510,17 @@ async def websocket_endpoint(websocket: WebSocket):
                 result = await canonical_orchestrator.execute_prompt(prompt, event_callback=stream_orchestrator_event)
 
                 # Cache staged files
-                staged_files_cache[session_id] = result.get("files", {})
+                staged_files = result.get("files", {})
+                staged_files_cache[session_id] = staged_files
 
-                # Send final completion event
+                # Send final completion event with review-card deltas
                 await websocket.send_json({
                     "type": "swarm_completed",
                     "intent": result.get("intent"),
                     "execution_mode": result.get("execution_mode"),
                     "tasks_executed": result.get("tasks_executed", 0),
-                    "files": list(result.get("files", {}).keys()),
+                    "files": list(staged_files.keys()),
+                    "deltas": build_staged_deltas(staged_files),
                     "text": result.get("summary", ""),
                     "session_id": session_id,
                 })

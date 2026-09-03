@@ -896,3 +896,171 @@ html, body {
   align-items: center;
   border-radius: 3px;
 }
+
+/* ============================================================================
+   Model Settings Modal (LLM Provider + API key)
+   ============================================================================ */
+.status-indicator-dot.ok { background-color: #2ea043; }
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 4, 9, 0.72);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9vh;
+  z-index: 2000;
+}
+
+.settings-overlay.hidden { display: none; }
+
+.settings-card {
+  width: 460px;
+  max-width: 92vw;
+  max-height: 82vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-muted);
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+  z-index: 1;
+}
+
+.settings-title {
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+}
+
+.settings-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+.llm-status-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-muted);
+  border-radius: 6px;
+}
+
+.llm-status-box .status-indicator-dot { margin-top: 3px; flex: none; }
+
+.llm-status-texts { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.llm-mode-line { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.llm-detail-line { font-size: 11px; color: var(--text-secondary); line-height: 1.45; }
+
+.settings-field { display: flex; flex-direction: column; gap: 5px; }
+
+.settings-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.settings-env-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent-gold);
+}
+
+.saved-hint {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #3fb950;
+  font-weight: 500;
+}
+
+.settings-input,
+.settings-select {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 5px;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  box-sizing: border-box;
+}
+
+.settings-input:focus,
+.settings-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
+}
+
+.settings-select { font-family: var(--font-ui); cursor: pointer; }
+
+.key-input-row { display: flex; gap: 6px; }
+.key-input-row .settings-input { flex: 1; }
+
+.settings-hint { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; }
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--accent-blue-hover);
+  text-align: left;
+}
+.btn-link.danger { color: var(--accent-red-hover); }
+.btn-link.danger:hover { text-decoration: underline; }
+.btn-link.hidden, .hidden { display: none !important; }
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-save-msg { font-size: 11.5px; color: var(--text-muted); margin-right: auto; }
+.settings-save-msg.ok { color: #3fb950; }
+.settings-save-msg.error { color: var(--accent-red-hover); }
+
+.settings-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-muted);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.settings-footer code {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  padding: 0 4px;
+  border-radius: 3px;
+}

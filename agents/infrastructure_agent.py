@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import logging
 import os
-import requests
 from typing import Any, Dict, Optional
+
+from llm import generate_text, resolve_model
 
 logger = logging.getLogger("InfrastructureAgent")
 
@@ -29,22 +30,22 @@ class InfrastructureAgent:
         self.system_prompt = "You are a DevOps expert. Generate Dockerfiles, k8s manifests, and CI/CD configs."
 
     def run(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute DevOps infrastructure task via Ollama or structured fallback."""
-        prompt = f"{self.system_prompt}\n\nTask: {task}"
+        """Execute DevOps infrastructure task via the configured LLM provider or the structured fallback."""
+        user_prompt = task
         if context:
-            prompt += f"\n\nContext:\n{context}"
+            user_prompt += f"\n\nContext:\n{context}"
 
-        try:
-            resp = requests.post(
-                f"{self.ollama_url}/api/generate",
-                json={"model": self.model, "prompt": prompt, "stream": False},
-                timeout=(0.5, 60.0),
-            )
-            if resp.status_code == 200:
-                output = resp.json().get("response", "")
-                return {"success": True, "agent": self.agent_id, "model": self.model, "output": output}
-        except Exception as exc:
-            logger.debug("Ollama call failed (%s), using local generation fallback", exc)
+        # Effective model after LLM_MODEL override resolution — reported in results.
+        model_used = resolve_model(self.model)
+        # Generate via the configured LLM provider (hosted API key or local Ollama).
+        output = generate_text(
+            system=self.system_prompt,
+            prompt=user_prompt,
+            model=self.model,
+            max_tokens=1500,
+        )
+        if output:
+            return {"success": True, "agent": self.agent_id, "model": model_used, "output": output}
 
 
         fallback_output = (
@@ -61,7 +62,7 @@ class InfrastructureAgent:
         return {
             "success": True,
             "agent": self.agent_id,
-            "model": self.model,
+            "model": model_used,
             "output": fallback_output,
             "note": "Generated via offline engine",
         }

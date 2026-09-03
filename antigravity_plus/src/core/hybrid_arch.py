@@ -46,9 +46,21 @@ class DisposableEnvironmentManager:
         if tag_dir.exists():
             shutil.rmtree(tag_dir, ignore_errors=True)
         tag_dir.mkdir(parents=True, exist_ok=True)
+        tag_dir.mkdir(parents=True, exist_ok=True)
 
         for item in self.base_workspace.iterdir():
-            if item.name in (".antigravity_snapshots", ".git", "__pycache__", "node_modules", ".pytest_cache"):
+            # Skip VCS/build dirs AND IDE runtime scratch dirs (snapshots of
+            # those would churn on every boot and can lock/collide on Windows).
+            if item.name in (
+                ".antigravity_snapshots",
+                ".antigravity_preview",
+                ".antigravity_state",
+                ".freebuff",
+                ".git",
+                "__pycache__",
+                "node_modules",
+                ".pytest_cache",
+            ):
                 continue
             dest = tag_dir / item.name
             if item.is_dir():

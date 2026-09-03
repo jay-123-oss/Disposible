@@ -12,7 +12,7 @@
   <!-- Monaco Editor CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.css">
   <!-- Antigravity Theme CSS -->
-  <link rel="stylesheet" href="/static/css/ide.css">
+  <link rel="stylesheet" href="/static/css/ide.css?v=4">
 </head>
 <body>
   <div class="antigravity-layout">
@@ -91,7 +91,7 @@
           <div class="act-btn" title="Accounts">
             <i class="codicon codicon-account"></i>
           </div>
-          <div class="act-btn" title="Settings">
+          <div class="act-btn" id="act-settings" title="Model Settings (LLM Provider)">
             <i class="codicon codicon-settings-gear"></i>
           </div>
         </div>
@@ -269,13 +269,94 @@
 
   </div>
 
+  <!-- ====================================================================
+       MODEL SETTINGS MODAL (LLM Provider + API Key)
+       ==================================================================== -->
+  <div class="settings-overlay hidden" id="settings-modal">
+    <div class="settings-card" role="dialog" aria-label="Model Settings">
+      <div class="settings-header">
+        <span class="settings-title">
+          <i class="codicon codicon-settings-gear"></i> Model Settings
+        </span>
+        <button class="chat-tool-btn" id="btn-close-settings" title="Close (Esc)">
+          <i class="codicon codicon-close"></i>
+        </button>
+      </div>
+
+      <div class="settings-body">
+        <!-- Live backend status (from /api/status -> llm) -->
+        <div class="llm-status-box" id="llm-status-box">
+          <span class="status-indicator-dot idle" id="settings-status-dot"></span>
+          <div class="llm-status-texts">
+            <div class="llm-mode-line" id="settings-mode-text">Checking backend…</div>
+            <div class="llm-detail-line" id="settings-detail-text"></div>
+          </div>
+        </div>
+
+        <form id="llm-settings-form" autocomplete="off">
+          <!-- Provider -->
+          <div class="settings-field">
+            <label class="settings-label" for="set-provider">Provider</label>
+            <select id="set-provider" class="settings-select"></select>
+          </div>
+
+          <!-- API Key -->
+          <div class="settings-field" id="set-key-row">
+            <label class="settings-label" for="set-api-key">
+              API Key
+              <span class="settings-env-tag" id="set-key-env"></span>
+              <span class="saved-hint" id="set-key-saved"></span>
+            </label>
+            <div class="key-input-row">
+              <input type="password" id="set-api-key" class="settings-input" placeholder="Paste your API key…" />
+              <button type="button" class="icon-tool-btn" id="btn-toggle-key" title="Show / hide key">
+                <i class="codicon codicon-eye"></i>
+              </button>
+            </div>
+            <div class="settings-hint" id="set-key-hint"></div>
+            <button type="button" class="btn-link danger hidden" id="btn-clear-key">Remove saved key</button>
+          </div>
+
+          <!-- Model override -->
+          <div class="settings-field">
+            <label class="settings-label" for="set-model">
+              Model
+              <span class="settings-env-tag" id="set-model-default"></span>
+            </label>
+            <input type="text" id="set-model" class="settings-input" placeholder="Leave blank for provider default" />
+          </div>
+
+          <!-- Base URL (openai-compatible) -->
+          <div class="settings-field hidden" id="set-baseurl-row">
+            <label class="settings-label" for="set-base-url">Base URL</label>
+            <input type="text" id="set-base-url" class="settings-input" placeholder="https://api.example.com/v1" />
+            <div class="settings-hint" id="set-baseurl-hint"></div>
+          </div>
+
+          <div class="settings-actions">
+            <span class="settings-save-msg" id="settings-save-msg"></span>
+            <button type="submit" class="btn-accept-code" id="btn-save-llm">
+              <i class="codicon codicon-save"></i> Save
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="settings-footer">
+        Keys are stored in the local <code>.env</code> file (git-ignored) and never shown again — only masked.
+        No key? Agents fall back to local Ollama automatically.
+      </div>
+    </div>
+  </div>
+
   <!-- Monaco Editor AMD Loader -->
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 
   <!-- Application Modules -->
-  <script src="/static/js/monaco_editor.js"></script>
-  <script src="/static/js/xterm_terminal.js"></script>
-  <script src="/static/js/agent_chat.js"></script>
-  <script src="/static/js/main.js"></script>
+  <script src="/static/js/monaco_editor.js?v=3"></script>
+  <script src="/static/js/xterm_terminal.js?v=3"></script>
+  <script src="/static/js/agent_chat.js?v=3"></script>
+  <script src="/static/js/settings.js?v=5"></script>
+  <script src="/static/js/main.js?v=3"></script>
 </body>
 </html>

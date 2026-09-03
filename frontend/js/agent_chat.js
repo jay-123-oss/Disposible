@@ -133,7 +133,7 @@ window.AntigravityChat = (function () {
       updateStatus('done', '✅ Task completed! Staged files ready for review.');
       appendMessage(data.text, 'agent');
       if (data.session_id) lastSessionId = data.session_id;
-      showStagedChanges(data.deltas || []);
+      showStagedChanges(data.deltas || [], data.session_id);
 
       AntigravityTerminal.appendLine(`[Swarm] Completed generation: ${data.files ? data.files.join(', ') : ''}`, 'success');
       AntigravityTerminal.appendLine(`[Swarm] Quality Score: ${data.quality_score} | Security: ${data.security_status}`, 'success');
@@ -174,7 +174,8 @@ window.AntigravityChat = (function () {
         .then((data) => {
           updateStatus('done', '✅ Task completed!');
           appendMessage(data.message, 'agent');
-          showStagedChanges(data.deltas || []);
+          if (data.session_id) lastSessionId = data.session_id;
+          showStagedChanges(data.deltas || [], data.session_id);
         })
         .catch((err) => {
           updateStatus('error', '❌ Generation error');
@@ -222,7 +223,7 @@ window.AntigravityChat = (function () {
     }
   }
 
-  function showStagedChanges(deltas) {
+  function showStagedChanges(deltas, sessionId) {
     if (!stagedCard || !stagedContainer) return;
     stagedContainer.innerHTML = '';
 
@@ -231,26 +232,55 @@ window.AntigravityChat = (function () {
       return;
     }
 
-    if (stagedCount) stagedCount.textContent = `${deltas.length} files`;
+    if (stagedCount) stagedCount.textContent = `${deltas.length} ${deltas.length === 1 ? 'file' : 'files'}`;
 
     deltas.forEach((d) => {
       const row = document.createElement('div');
       row.className = 'diff-row';
-      row.innerHTML = `
-        <span>📁 ${d.path}</span>
-        <div>
-          <span class="diff-tag-add">+${d.linesAdded}</span>
-          <span class="diff-tag-del">-${d.linesDeleted}</span>
-          <span class="diff-tag-stat">[${d.status}]</span>
-        </div>
-      `;
+      row.title = 'Click to preview staged content';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = `📁 ${d.path}`;
+
+      const tags = document.createElement('div');
+      const addTag = document.createElement('span');
+      addTag.className = 'diff-tag-add';
+      addTag.textContent = `+${d.linesAdded || 0}`;
+      const delTag = document.createElement('span');
+      delTag.className = 'diff-tag-del';
+      delTag.textContent = `-${d.linesDeleted || 0}`;
+      const statTag = document.createElement('span');
+      statTag.className = 'diff-tag-stat';
+      statTag.textContent = `[${d.status || 'STAGED'}]`;
+      tags.appendChild(addTag);
+      tags.appendChild(delTag);
+      tags.appendChild(statTag);
+
+      row.appendChild(nameSpan);
+      row.appendChild(tags);
       row.addEventListener('click', () => {
-        AntigravityApp.loadFile(d.path);
+        loadStagedFilePreview(d.path, sessionId || lastSessionId);
       });
       stagedContainer.appendChild(row);
     });
 
     stagedCard.classList.remove('hidden');
+  }
+
+  function loadStagedFilePreview(path, sessionId) {
+    const params = new URLSearchParams({ session_id: sessionId || '', path: path });
+    fetch(`/api/staged-file?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status === 'success' && typeof AntigravityApp.openContent === 'function') {
+          AntigravityApp.openContent(data.path, data.content);
+        } else {
+          AntigravityApp.loadFile(path);
+        }
+      })
+      .catch(() => {
+        AntigravityApp.loadFile(path);
+      });
   }
 
   function hideStagedChanges() {
