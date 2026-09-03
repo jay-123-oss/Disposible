@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
-import requests
 from typing import Any, Dict, List, Optional
+
+from llm import embed_text
 
 logger = logging.getLogger("EmbeddingAgent")
 
@@ -23,25 +23,20 @@ class EmbeddingAgent:
         ollama_url: Optional[str] = None,
         model: str = "nomic-embed-text",
     ) -> None:
+        # ``ollama_url`` is accepted for backward compatibility only — the
+        # unified llm.py gateway reads OLLAMA_URL / LLM_EMBEDDING_MODEL itself.
+        del ollama_url
         self.name = "Embedding Agent"
         self.agent_id = "embedding"
         self.model = model
-        self.ollama_url = ollama_url or os.getenv("OLLAMA_URL", "http://localhost:11434")
         self.system_prompt = "You are an embedding expert. Generate vector embeddings for semantic search."
 
     def embed(self, text: str) -> List[float]:
-        """Generate embedding vector for text via Ollama or deterministic pseudo-vector."""
-        try:
-            resp = requests.post(
-                f"{self.ollama_url}/api/embeddings",
-                json={"model": self.model, "prompt": text},
-                timeout=(0.5, 30.0),
-            )
-            if resp.status_code == 200:
-                return resp.json().get("embedding", [])
-        except Exception as exc:
-            logger.debug("Ollama embeddings failed (%s), using deterministic embedding fallback", exc)
-
+        """Embed via the unified llm.py gateway (cloud API key -> local Ollama),
+        else fall back to a deterministic pseudo-vector."""
+        vector = embed_text(text, model=self.model)
+        if vector:
+            return vector
 
         # Generate deterministic 768-dim vector from text hash
         seed = int(hashlib.md5(text.encode("utf-8")).hexdigest(), 16)

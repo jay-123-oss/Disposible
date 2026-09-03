@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Tests passed\" && exit 0"
+    "test": "python smoke_test.py",
+    "test:quick": "python smoke_test.py --no-pytest"
   },
   "dependencies": {
     "@babel/standalone": "^7.29.0",

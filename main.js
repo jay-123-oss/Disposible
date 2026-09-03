@@ -6,6 +6,37 @@ const { spawn } = require('child_process');
 let mainWindow = null;
 let activeShell = null;
 
+// The desktop renderer's Accept flow expects staged files as a content map
+// { relativePath: content } (same shape CanonicalOrchestrator.execute_prompt returns).
+// Newer servers return that map in /api/chat; legacy ones only return file names,
+// so hydrate each staged file from the staged-file endpoint (best effort).
+async function hydrateStagedFiles(baseUrl, sessionId, files) {
+  if (!files) return {};
+  // Already a map (or empty object) -> nothing to do.
+  if (!Array.isArray(files)) return files;
+
+  const hydrated = {};
+  await Promise.all(files.map(async (name) => {
+    const params = new URLSearchParams({ session_id: sessionId || 'default', path: name });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    try {
+      const resp = await fetch(`${baseUrl}/api/staged-file?${params.toString()}`, { signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.status === 'success' && typeof data.content === 'string') {
+          hydrated[name] = data.content;
+        }
+      }
+    } catch (_) {
+      // Best effort: leave the file out of the map if it cannot be fetched.
+    } finally {
+      clearTimeout(timeout);
+    }
+  }));
+  return hydrated;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1360,
@@ -256,7 +287,25 @@ ipcMain.handle('agent:executePrompt', async (event, promptText) => {
     });
     clearTimeout(timeout);
     if (resp.ok) {
-      return await resp.json();
+      const result = await resp.json();
+      // Normalize to the canonical execute_prompt shape so the renderer can stage
+      // and accept files. If the server only returned file names (legacy contract),
+      // fetch each staged file's content before handing the result to the renderer.
+      const sessionId = result.session_id || 'desktop_ui';
+      const serverBaseUrl = 'http://127.0.0.1:8000';
+      // Always hand the renderer a content map ({ path: content }) — never a bare
+      // name array, which would make the Accept flow write bogus files.
+      result.files = await hydrateStagedFiles(serverBaseUrl, sessionId, result.files);
+      if (Object.keys(result.files).length > 0) {
+        result.files_count = Object.keys(result.files).length;
+        result.deltas = result.deltas || Object.keys(result.files).map((name) => ({
+          path: name,
+          status: 'CREATED',
+          linesAdded: (result.files[name] || '').split('\n').length,
+          linesDeleted: 0,
+        }));
+      }
+      return result;
     }
   } catch (_) {}
 
