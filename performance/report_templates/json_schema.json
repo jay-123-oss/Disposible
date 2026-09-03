@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PerformanceTestReport",
+  "type": "object",
+  "properties": {
+    "test_id": { "type": "string" },
+    "timestamp": { "type": "number" },
+    "overall_passed": { "type": "boolean" },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "p95_latency_ms": { "type": "number" },
+        "throughput_rps": { "type": "number" },
+        "error_rate_percent": { "type": "number" },
+        "max_concurrency": { "type": "integer" }
+      },
+      "required": ["p95_latency_ms", "throughput_rps", "error_rate_percent", "max_concurrency"]
+    },
+    "subsystems": { "type": "object" }
+  },
+  "required": ["test_id", "timestamp", "overall_passed", "metrics"]
+}

@@ -1,0 +1,72 @@
+system_assembly:
+  components: ["core", "agents", "integration", "tests", "docs"]
+  validate_before_assembly: true
+  integrity_check: true
+
+dependencies:
+  extract_dependencies: true
+  resolve_versions: true
+  auto_resolve_conflicts: true
+
+configuration:
+  merge_enabled: true
+  validate_config: true
+  config_test_enabled: true
+
+code_validation:
+  syntax_check: true
+  type_check: true
+  lint_check: true
+  quality_check: true
+
+deployment:
+  deployment_type: "docker"
+  verify_before_deploy: true
+  health_check_wait_seconds: 60
+
+services:
+  auto_start: true
+  auto_connect: true
+  health_check_interval: 30
+  monitor_enabled: true
+
+health:
+  system_health: true
+  agent_health: true
+  service_health: true
+  performance_health: true
+
+go_live:
+  readiness_check: true
+  approval_required: true
+  announce_go_live: true
+
+smoke_test:
+  critical_flows: true
+  api_tests: true
+  ui_tests: true
+  integration_tests: true
+
+rollback:
+  plan_before_deploy: true
+  execute_on_failure: true
+  verify_after_rollback: true
+  communicate_rollback: true
+
+post_deployment:
+  functional_verify: true
+  performance_verify: true
+  security_verify: true
+  user_verify: true
+
+handover:
+  prepare_documentation: true
+  generate_training_materials: true
+  generate_operations_guide: true
+  coordinate_handover: true
+
+signoff:
+  generate_checklist: true
+  track_approvals: true
+  collect_signatures: true
+  generate_final_report: true

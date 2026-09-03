@@ -1,0 +1,16 @@
+channels:
+  email:
+    enabled: true
+    recipients: ["sre-team@fractal-system.internal", "oncall@fractal-system.internal"]
+    min_priority: "medium"
+
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/T00/B00/X00"
+    channel: "#production-alerts"
+    min_priority: "low"
+
+  pagerduty:
+    enabled: true
+    integration_key: "pd-service-key-fractal-prod"
+    min_priority: "critical"

@@ -1,0 +1,26 @@
+real_time_monitor:
+  monitoring_interval_seconds: 5
+  metrics: ["system", "agent", "service", "business"]
+  data_retention_days: 30
+
+incident_detector:
+  anomaly_detection: true
+  pattern_recognition: true
+  threshold_checking: true
+  predictive_detection: true
+
+performance_monitor:
+  sla_threshold_ms: 200
+  throughput_threshold_rps: 100
+  trend_analysis_enabled: true
+
+resource_monitor:
+  cpu_threshold: 80
+  memory_threshold: 80
+  disk_threshold: 85
+  network_threshold: 70
+
+log_analysis:
+  log_retention_days: 30
+  indexing_enabled: true
+  search_timeout_seconds: 5

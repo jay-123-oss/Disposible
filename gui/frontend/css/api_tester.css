@@ -1,0 +1,22 @@
+/* API Tester UI CSS */
+.api-tester-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.request-panel, .response-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.http-method-select {
+  background: #1e293b;
+  color: var(--accent-cyan);
+  border: 1px solid var(--border-card);
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 700;
+}

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  fractal-prod:
+    image: docker.io/fractal_agent_system:latest
+    container_name: fractal-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - FRACTAL_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 8192M
+          cpus: '4.0'
+    restart: always

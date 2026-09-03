@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity IDE - 6-Agent Swarm & GPU Cloud</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- VS Code Codicons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.min.css">
+  <!-- Monaco Editor CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.css">
+  <!-- Antigravity Theme CSS -->
+  <link rel="stylesheet" href="/static/css/ide.css">
+</head>
+<body>
+  <div class="antigravity-layout">
+    
+    <!-- ====================================================================
+         1. TOP MENU BAR (Antigravity Style)
+         ==================================================================== -->
+    <header class="top-nav-bar">
+      <div class="nav-left">
+        <div class="brand-badge">
+          <i class="codicon codicon-rocket brand-icon"></i>
+          <span class="brand-title">Antigravity+</span>
+        </div>
+        <ul class="nav-menu">
+          <li class="menu-trigger" id="menu-file">File</li>
+          <li class="menu-trigger">Edit</li>
+          <li class="menu-trigger">Selection</li>
+          <li class="menu-trigger">View</li>
+          <li class="menu-trigger">Go</li>
+          <li class="menu-trigger">Run</li>
+          <li class="menu-trigger" id="menu-terminal-btn">Terminal</li>
+          <li class="menu-trigger">Help</li>
+        </ul>
+      </div>
+
+      <div class="nav-center">
+        <div class="search-breadcrumb" id="search-bar">
+          <i class="codicon codicon-search search-icon"></i>
+          <span id="active-file-title">Antigravity IDE - Press / to Chat</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- One-Click GPU Deploy Button -->
+        <button class="btn-gpu-deploy" id="btn-deploy-gpu" title="One-Click Deploy 6-Agent Swarm to Kaggle / Colab GPU">
+          <i class="codicon codicon-cloud-upload"></i>
+          <span>Deploy GPU</span>
+        </button>
+
+        <div class="avatar-circle" title="User Profile">J</div>
+
+        <!-- 2. TOP-RIGHT AGENT CHAT BUTTON -->
+        <button class="top-agent-chat-btn" id="btn-toggle-chat" title="Toggle 6-Agent Swarm Chat (Top Right)">
+          <span class="chat-btn-dot"></span>
+          <i class="codicon codicon-comment-discussion"></i>
+          <span>Agent Swarm</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         MAIN WORKSPACE: Sidebar + Editor + Live Preview + Terminal
+         ==================================================================== -->
+    <main class="workspace-container">
+      
+      <!-- Activity Bar (Icons) -->
+      <nav class="activity-bar">
+        <div class="activity-top">
+          <div class="act-btn active" id="act-explorer" title="Explorer">
+            <i class="codicon codicon-files"></i>
+          </div>
+          <div class="act-btn" id="act-search" title="Search">
+            <i class="codicon codicon-search"></i>
+          </div>
+          <div class="act-btn" id="act-scm" title="Source Control">
+            <i class="codicon codicon-source-control"></i>
+          </div>
+          <div class="act-btn" id="act-debug" title="Run and Debug">
+            <i class="codicon codicon-debug-alt"></i>
+          </div>
+          <div class="act-btn" id="act-extensions" title="Extensions">
+            <i class="codicon codicon-extensions"></i>
+          </div>
+        </div>
+        <div class="activity-bottom">
+          <div class="act-btn" title="Accounts">
+            <i class="codicon codicon-account"></i>
+          </div>
+          <div class="act-btn" title="Settings">
+            <i class="codicon codicon-settings-gear"></i>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Explorer Sidebar -->
+      <aside class="explorer-sidebar" id="explorer-panel">
+        <div class="explorer-top-bar">
+          <span class="explorer-heading">EXPLORER</span>
+          <div class="explorer-actions">
+            <button class="icon-tool-btn" id="btn-new-file" title="New File">
+              <i class="codicon codicon-new-file"></i>
+            </button>
+            <button class="icon-tool-btn" id="btn-new-folder" title="New Folder">
+              <i class="codicon codicon-new-folder"></i>
+            </button>
+            <button class="icon-tool-btn" id="btn-refresh-tree" title="Refresh">
+              <i class="codicon codicon-refresh"></i>
+            </button>
+          </div>
+        </div>
+        <div class="file-tree-container" id="file-tree-root">
+          <!-- Populated dynamically via JS -->
+          <div class="empty-tree-hint">Loading workspace files...</div>
+        </div>
+      </aside>
+
+      <!-- Center Code Area: Tabs + Monaco Editor + Live Preview -->
+      <section class="editor-section">
+        
+        <!-- Editor Tabs Bar -->
+        <div class="editor-tabs-bar" id="editor-tabs-list">
+          <div class="editor-tab active" id="tab-preview">
+            <i class="codicon codicon-globe"></i>
+            <span>Live Preview</span>
+          </div>
+        </div>
+
+        <!-- Editor Canvas Split -->
+        <div class="editor-viewport">
+          <!-- Monaco Editor Container -->
+          <div class="monaco-canvas" id="monaco-container"></div>
+
+          <!-- Live Preview IFrame -->
+          <div class="preview-panel" id="preview-container">
+            <div class="preview-header">
+              <div class="preview-controls">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+              </div>
+              <div class="preview-address-bar">
+                <i class="codicon codicon-lock"></i>
+                <span id="preview-url-text">http://localhost:8000/preview</span>
+              </div>
+              <button class="btn-refresh-preview" id="btn-reload-preview" title="Reload Preview">
+                <i class="codicon codicon-refresh"></i>
+              </button>
+            </div>
+            <iframe id="preview-frame" src="about:blank"></iframe>
+          </div>
+        </div>
+
+        <!-- Bottom Terminal Drawer -->
+        <div class="bottom-terminal-panel" id="terminal-drawer">
+          <div class="terminal-bar">
+            <div class="terminal-tabs">
+              <span class="term-tab active"><i class="codicon codicon-terminal"></i> Terminal</span>
+              <span class="term-tab"><i class="codicon codicon-output"></i> Output</span>
+              <span class="term-tab"><i class="codicon codicon-debug-console"></i> Debug Console</span>
+            </div>
+            <div class="terminal-tools">
+              <button class="term-tool-btn" id="btn-clear-term" title="Clear Terminal">
+                <i class="codicon codicon-clear-all"></i>
+              </button>
+              <button class="term-tool-btn" id="btn-toggle-term" title="Toggle Terminal Size">
+                <i class="codicon codicon-chevron-down"></i>
+              </button>
+            </div>
+          </div>
+          <div class="terminal-console" id="terminal-output">
+            <div class="term-line info">Antigravity IDE Subsystem v2.5.0</div>
+            <div class="term-line success">Connected to 6-Agent Swarm Orchestrator (Ollama / GPU backend ready).</div>
+            <div class="term-line prompt">$ <span class="term-cursor"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           RIGHT-SIDE SLIDING AGENT CHAT PANEL (300ms Animation)
+           ================================================================== -->
+      <aside class="agent-chat-drawer" id="agent-chat-panel">
+        
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="chat-title-group">
+            <span class="swarm-badge">🤖 Antigravity 6-Agent Swarm</span>
+          </div>
+          <div class="chat-header-tools">
+            <button class="chat-tool-btn" id="btn-new-chat" title="New Session">
+              <i class="codicon codicon-add"></i>
+            </button>
+            <button class="chat-tool-btn" id="btn-close-chat" title="Close Panel">
+              <i class="codicon codicon-close"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. Real-Time Status Bar -->
+        <div class="agent-live-status-bar" id="agent-status-bar">
+          <span class="status-indicator-dot idle" id="status-dot"></span>
+          <span class="status-text" id="status-label">Ready. Ask me anything.</span>
+        </div>
+
+        <!-- 6 & 7. File Change Tracking & Accept/Reject Controls -->
+        <div class="file-changes-box hidden" id="staged-changes-card">
+          <div class="staged-card-header">
+            <span>Staged Code Review</span>
+            <span class="staged-count-badge" id="staged-count">0 files</span>
+          </div>
+          <div class="staged-files-list" id="staged-files-container">
+            <!-- Populated dynamically with diffs -->
+          </div>
+          <div class="quality-score-line" id="quality-score-text">
+            Quality Score: 99.2% (SOLID compliant)
+          </div>
+          <!-- 7. Accept / Reject Buttons -->
+          <div class="staged-action-buttons">
+            <button class="btn-accept-code" id="btn-accept-changes">
+              <i class="codicon codicon-check"></i> Accept & Save
+            </button>
+            <button class="btn-reject-code" id="btn-reject-changes">
+              <i class="codicon codicon-discard"></i> Reject
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Conversation Messages Area -->
+        <div class="chat-conversation-area" id="chat-stream">
+          <!-- Messages dynamically appended -->
+        </div>
+
+        <!-- Chat Input Form -->
+        <form class="chat-compose-bar" id="chat-form">
+          <textarea
+            id="chat-input"
+            rows="1"
+            placeholder="Ask anything, e.g. 'Create a coffee shop landing page' or 'Build a REST API with JWT'"
+          ></textarea>
+          <button type="submit" id="btn-send-prompt" class="btn-send" title="Send to 6-Agent Swarm">
+            <i class="codicon codicon-arrow-up"></i>
+          </button>
+        </form>
+      </aside>
+
+    </main>
+
+    <!-- ====================================================================
+         BOTTOM STATUS BAR
+         ==================================================================== -->
+    <footer class="bottom-status-strip">
+      <div class="status-left">
+        <span class="stat-item"><i class="codicon codicon-error" style="color:#f85149"></i> 0</span>
+        <span class="stat-item"><i class="codicon codicon-warning" style="color:#d29922"></i> 0</span>
+        <span class="stat-item" id="swarm-model-pill"><i class="codicon codicon-hubot"></i> 6-Agent Swarm (Qwen+Llama)</span>
+      </div>
+      <div class="status-right">
+        <span class="stat-item" id="editor-coords">Ln 1, Col 1</span>
+        <span class="stat-item">Spaces: 2</span>
+        <span class="stat-item">UTF-8</span>
+        <span class="stat-item">LF</span>
+        <span class="stat-badge">Antigravity IDE - Ready</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Monaco Editor AMD Loader -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+  <!-- Application Modules -->
+  <script src="/static/js/monaco_editor.js"></script>
+  <script src="/static/js/xterm_terminal.js"></script>
+  <script src="/static/js/agent_chat.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

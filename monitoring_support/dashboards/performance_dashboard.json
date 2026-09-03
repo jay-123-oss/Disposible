@@ -1,0 +1,35 @@
+{
+  "id": "dash_performance_overview",
+  "title": "Application Latency & SLA Compliance",
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "P95 Response Latency (ms)",
+      "type": "gauge",
+      "thresholds": {"warn": 150, "crit": 200},
+      "query": "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[1m])) by (le))"
+    },
+    {
+      "id": 2,
+      "title": "Transaction Throughput (RPS)",
+      "type": "stat",
+      "thresholds": {"warn": 80, "target": 100},
+      "query": "sum(rate(http_requests_total[1m]))"
+    },
+    {
+      "id": 3,
+      "title": "System Uptime & SLA (%)",
+      "type": "stat",
+      "thresholds": {"crit": 99.5, "target": 99.9},
+      "query": "system_uptime_ratio * 100"
+    },
+    {
+      "id": 4,
+      "title": "Error Rate (%)",
+      "type": "gauge",
+      "thresholds": {"warn": 1.0, "crit": 5.0},
+      "query": "sum(rate(http_requests_failed_total[1m])) / sum(rate(http_requests_total[1m])) * 100"
+    }
+  ]
+}

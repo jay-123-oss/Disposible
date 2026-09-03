@@ -1,0 +1,26 @@
+/* Log Viewer UI CSS */
+.log-filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.log-terminal {
+  background: #090d16;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 16px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  height: 520px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.log-level-info { color: var(--accent-cyan); font-weight: 600; }
+.log-level-warn { color: var(--accent-amber); font-weight: 600; }
+.log-level-error { color: var(--accent-red); font-weight: 600; }

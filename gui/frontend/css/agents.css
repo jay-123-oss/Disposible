@@ -1,0 +1,44 @@
+/* Agent Visualizer CSS */
+.agent-tree-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 420px;
+  overflow: auto;
+}
+
+.agent-node {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.agent-node.level-l3 { border-left: 4px solid var(--accent-purple); }
+.agent-node.level-l4 { border-left: 4px solid var(--accent-blue); margin-left: 20px; }
+.agent-node.level-l5 { border-left: 4px solid var(--accent-cyan); margin-left: 40px; }
+
+.agent-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-ctrl {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.btn-ctrl:hover {
+  background: var(--accent-blue);
+}

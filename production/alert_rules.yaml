@@ -1,0 +1,34 @@
+groups:
+  - name: fractal_production_alerts
+    rules:
+      - alert: HighCpuUsage
+        expr: cpu_usage_percent > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU utilization exceeded 80%"
+
+      - alert: HighMemoryUsage
+        expr: memory_usage_mb > 7000
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Memory utilization approaching 8GB threshold"
+
+      - alert: HighResponseLatency
+        expr: http_request_duration_ms > 200
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latency exceeded 200ms SLA"
+
+      - alert: AgentCrashOrDeadlock
+        expr: active_agent_errors > 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical failure or deadlock detected in fractal agents"

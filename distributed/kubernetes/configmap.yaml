@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fractal-cluster-config
+  labels:
+    app: fractal-distributed
+data:
+  distributed_config.yaml: |
+    distributed:
+      cluster:
+        name: "fractal-cluster"
+        size: 3
+        min_size: 3
+        max_size: 10
+      consensus:
+        algorithm: "raft"
+        election_timeout: 1000
+        heartbeat_interval: 500
+      load_balancing:
+        algorithm: "round_robin"
+      fault_tolerance:
+        failure_threshold: 3
+        recovery_timeout: 60

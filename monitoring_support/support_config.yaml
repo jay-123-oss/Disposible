@@ -1,0 +1,24 @@
+alert_manager:
+  alert_channel: ["email", "slack", "pagerduty"]
+  escalation_after_minutes: 5
+  alert_priority: ["critical", "high", "medium", "low"]
+
+incident_responder:
+  triage_time_minutes: 5
+  response_time_minutes: 15
+  resolution_time_minutes: 60
+
+support_tickets:
+  ticket_priority: ["critical", "high", "medium", "low"]
+  resolution_time_hours: 4
+  assignee_rotation: true
+
+escalation:
+  escalation_levels: ["L1", "L2", "L3", "L4"]
+  escalation_time_minutes: 15
+  auto_escalation: true
+
+root_cause_analysis:
+  analysis_completion_hours: 24
+  prevention_planning: true
+  recommendation_generation: true

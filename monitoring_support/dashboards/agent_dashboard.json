@@ -1,0 +1,32 @@
+{
+  "id": "dash_agent_overview",
+  "title": "Agent Cluster Activity & Heartbeats",
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Active Agents Count",
+      "type": "stat",
+      "query": "count(agent_status{state='ACTIVE'})"
+    },
+    {
+      "id": 2,
+      "title": "Heartbeat Latency (ms)",
+      "type": "graph",
+      "thresholds": {"crit": 1000},
+      "query": "agent_heartbeat_latency_ms"
+    },
+    {
+      "id": 3,
+      "title": "Tasks Processed per Sec",
+      "type": "graph",
+      "query": "rate(tasks_completed_total[1m])"
+    },
+    {
+      "id": 4,
+      "title": "Hierarchical Depth Distribution",
+      "type": "bar",
+      "query": "agent_depth_histogram"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "dash_alert_overview",
+  "title": "Active Alerts & Incident Escalations",
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Open Incidents by Severity",
+      "type": "pie",
+      "query": "sum(incident_status{state='OPEN'}) by (severity)"
+    },
+    {
+      "id": 2,
+      "title": "Mean Time to Detect (MTTD - mins)",
+      "type": "stat",
+      "thresholds": {"crit": 5},
+      "query": "avg(incident_mttd_minutes)"
+    },
+    {
+      "id": 3,
+      "title": "Mean Time to Resolve (MTTR - mins)",
+      "type": "stat",
+      "thresholds": {"crit": 60},
+      "query": "avg(incident_mttr_minutes)"
+    },
+    {
+      "id": 4,
+      "title": "Recent Alert Timeline",
+      "type": "table",
+      "query": "alerts_history_recent"
+    }
+  ]
+}

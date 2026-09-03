@@ -1,0 +1,68 @@
+# Framework Selection Configuration
+# Fractal Multi-Agent Coding System - Session 22/23
+
+frameworks:
+  python:
+    default: "fastapi"
+    options:
+      fastapi:
+        suitability: { api: 9.5, fullstack: 7.0, low_latency: 8.5 }
+        requires: ["uvicorn", "pydantic"]
+      django:
+        suitability: { fullstack: 9.0, admin: 9.5, api: 7.0 }
+        requires: ["djangorestframework"]
+      flask:
+        suitability: { microservice: 8.5, api: 7.5, fullstack: 6.0 }
+        requires: []
+
+  node:
+    default: "express"
+    options:
+      express:
+        suitability: { api: 9.2, simple: 9.0, low_latency: 8.0 }
+        requires: ["body-parser", "cors"]
+      nestjs:
+        suitability: { enterprise: 9.5, structured: 9.3, api: 8.5 }
+        requires: ["@nestjs/core"]
+      fastify:
+        suitability: { low_latency: 9.4, api: 8.8, high_throughput: 9.0 }
+        requires: []
+
+  go:
+    default: "gin"
+    options:
+      gin:
+        suitability: { api: 9.0, standard: 9.2, middleware_heavy: 8.0 }
+        requires: []
+      echo:
+        suitability: { middleware_heavy: 9.0, api: 8.5, standard: 8.0 }
+        requires: []
+      fiber:
+        suitability: { low_latency: 9.5, api: 8.0, standard: 7.5 }
+        requires: []
+
+  rust:
+    default: "actix"
+    options:
+      actix:
+        suitability: { high_performance: 9.6, api: 9.1, production: 9.3 }
+        requires: ["actix-web"]
+      rocket:
+        suitability: { developer_friendly: 9.2, api: 8.2, playful: 9.0 }
+        requires: ["rocket"]
+      axum:
+        suitability: { async: 9.4, api: 8.8, tower_integration: 9.0 }
+        requires: ["axum"]
+
+  java:
+    default: "spring-boot"
+    options:
+      spring-boot:
+        suitability: { enterprise: 9.5, api: 9.3, microservice: 8.8 }
+        requires: ["spring-web", "spring-data-jpa"]
+      quarkus:
+        suitability: { cloud_native: 9.4, fast_startup: 9.5, api: 8.0 }
+        requires: []
+      micronaut:
+        suitability: { microservice: 9.0, low_overhead: 9.2, api: 8.2 }
+        requires: []

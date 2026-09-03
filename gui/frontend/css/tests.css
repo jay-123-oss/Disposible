@@ -1,0 +1,29 @@
+/* Test Runner UI CSS */
+.test-runner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.test-suite-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.coverage-bar-container {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  height: 12px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.coverage-bar {
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+  height: 100%;
+  width: 94.2%;
+}

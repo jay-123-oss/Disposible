@@ -1,0 +1,39 @@
+load_test:
+  concurrency_levels: [10, 50, 100, 500, 1000]
+  ramp_up_duration_seconds: 60
+  test_duration_seconds: 300
+  target_throughput_rps: 100
+
+stress_test:
+  start_concurrency: 10
+  max_concurrency: 2000
+  step_size: 50
+  step_duration_seconds: 30
+
+spike_test:
+  base_concurrency: 100
+  spike_concurrency: 500
+  spike_duration_seconds: 30
+  recovery_duration_seconds: 60
+
+soak_test:
+  duration_hours: 24
+  concurrency: 100
+  monitoring_interval_seconds: 60
+  memory_threshold_mb: 8192
+
+scalability_test:
+  node_counts: [1, 2, 4, 8]
+  test_duration_seconds: 300
+  scaling_efficiency_target: 80
+
+benchmarks:
+  system_benchmark: true
+  agent_benchmark: true
+  api_benchmark: true
+  database_benchmark: true
+
+analysis:
+  response_time_percentiles: [50, 90, 95, 99]
+  error_rate_threshold: 1
+  throughput_window_seconds: 10

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity IDE</title>
+  <!-- Pixel-Perfect VSCode Codicons -->
+  <link rel="stylesheet" href="../node_modules/@vscode/codicons/dist/codicon.css">
+  <!-- Monaco Editor CSS -->
+  <link rel="stylesheet" href="../node_modules/monaco-editor/min/vs/editor/editor.main.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React 18 UMD & Babel Standalone (100% Offline, Zero CDN) -->
+  <script src="../node_modules/react/umd/react.development.js"></script>
+  <script src="../node_modules/react-dom/umd/react-dom.development.js"></script>
+  <script src="../node_modules/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Monaco Editor AMD Loader -->
+  <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+  <script>
+    if (window.require && window.require.config) {
+      window.require.config({ paths: { vs: '../node_modules/monaco-editor/min/vs' } });
+    }
+  </script>
+
+  <!-- React Application Component -->
+  <script type="text/babel" src="App.jsx"></script>
+</body>
+</html>

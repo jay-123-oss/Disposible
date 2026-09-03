@@ -1,0 +1,15 @@
+cluster:
+  name: "fractal-cluster"
+  version: "1.0.0"
+  min_quorum_nodes: 3
+  max_nodes: 10
+  peers:
+    - "node-1:8000"
+    - "node-2:8000"
+    - "node-3:8000"
+  election:
+    timeout_ms: 1000
+    heartbeat_ms: 500
+  network:
+    protocol: "tcp"
+    timeout_seconds: 30

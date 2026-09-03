@@ -1,0 +1,414 @@
+================================================================================
+🚀 ANTIGRAVITY+ : THE ULTIMATE DESKTOP IDE MASTER SPECIFICATION PROMPT
+================================================================================
+VERSION: 2.5.0-DESKTOP
+ARCHITECTURE: Electron (Node.js) + React + @vscode/codicons + 6-Agent AI Swarm
+TARGET ENVIRONMENT: Native Desktop Application (Windows / macOS / Linux)
+FILE TYPE: Autonomous Master Implementation Prompt & System Blueprint
+
+--------------------------------------------------------------------------------
+📌 NOTICE TO IMPLEMENTING AI AGENT
+--------------------------------------------------------------------------------
+Do NOT output generic placeholders, partial snippets, or mock hardcoded data.
+This document serves as an exhaustive, authoritative system prompt. Implement
+every architectural layer, native IPC bridge, UI/UX component, and agent workflow
+exactly as specified below.
+================================================================================
+
+
+################################################################################
+SECTION 1: SYSTEM PHILOSOPHY & NON-NEGOTIABLE ARCHITECTURAL DIRECTIVES
+################################################################################
+
+1.1 NATIVE DESKTOP ARCHITECTURE (NO BROWSER SANDBOXING)
+   - The application must run as a native desktop application powered by
+     Electron.js with a React frontend and Node.js backend.
+   - BROWSER FILE SYSTEM ACCESS API IS STRICTLY PROHIBITED. All file system I/O,
+     directory traversals, file reads, and file writes must pass through
+     Node's native `fs` and `fs/promises` modules via secure IPC bridges.
+   - ABSOLUTELY NO BROWSER PERMISSION POPUPS. Access to the local filesystem must
+     be native, instantaneous, and silent.
+
+1.2 ZERO HARDCODED MOCK DATA & STRICT INITIAL STATE
+   - Initial application state must start clean: `workspacePath = null`.
+   - When no workspace is open, the File Explorer must display ONLY a centered
+     `[ Open Folder ]` button. No fake files or preset folders.
+   - The central editor area must render a blank `#1e1e1e` canvas with a subtle
+     centered watermark: "Antigravity IDE - Press Ctrl+O to Open a Folder".
+   - File trees must populate ONLY when the user explicitly chooses a directory
+     via the native operating system file picker (`dialog.showOpenDialog`).
+
+1.3 PIXEL-PERFECT VISUALS WITH OFFICIAL @vscode/codicons
+   - No informal emojis or arbitrary SVGs for IDE controls.
+   - Strictly install and render official `@vscode/codicons` (e.g., `codicon-files`,
+     `codicon-search`, `codicon-source-control`, `codicon-debug-alt`,
+     `codicon-extensions`, `codicon-settings-gear`, `codicon-account`).
+
+1.4 DUAL-PANEL PARADIGM: INTEGRATED TERMINAL & RIGHT-SIDE SLIDING AGENT CHAT
+   - No cluttered bottom terminal occupying the main code editor canvas.
+   - The application incorporates an interactive right-side AI Assistant sliding
+     panel toggled by a floating action button on the bottom right.
+   - The AI Assistant panel houses real-time progress indicators, an embedded
+     interactive mini-terminal (xterm.js + PTY), file change telemetry,
+     and an auto-expanding context-aware prompt bar.
+
+
+################################################################################
+SECTION 2: GLOBAL STATE MANAGEMENT (ZUSTAND / REACT STATE)
+################################################################################
+
+The IDE's state lifecycle must be governed by a centralized store maintaining
+the following schema:
+
+```typescript
+interface IDEState {
+  // Workspace and File System
+  workspacePath: string | null;           // Absolute path to open root directory
+  workspaceName: string | null;           // Display name of current directory
+  fileTree: TreeNode[];                   // Recursive representation of directory
+  expandedFolders: Record<string, boolean>; // Path map of expanded folders
+
+  // Editor Buffers
+  openFiles: OpenFile[];                  // Array of open tabs
+  activeFilePath: string | null;          // Path of currently active buffer
+  cursorPosition: { line: number; col: number }; // Live line and column tracking
+
+  // UI Geometry and Panel States
+  leftPanelWidth: number;                 // Typically 250px (or 0px when collapsed)
+  isExplorerOpen: boolean;                // Left sidebar visibility
+  isChatOpen: boolean;                    // Right-side AI agent sliding panel state
+  
+  // 6-Agent Swarm Telemetry
+  agentLifecycle: "idle" | "thinking" | "writing" | "waiting" | "done" | "error";
+  agentCurrentAction: string;             // Human-readable status line
+  fileChangesHistory: FileDelta[];        // Tracks lines added/removed per file
+  chatMessages: ChatMessage[];            // Multi-turn context conversation
+}
+
+interface TreeNode {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  children: TreeNode[] | null;
+}
+
+interface OpenFile {
+  path: string;
+  name: string;
+  content: string;
+  isDirty: boolean;
+}
+
+interface FileDelta {
+  path: string;
+  linesAdded: number;
+  linesDeleted: number;
+  status: "created" | "modified" | "deleted";
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "user" | "agent" | "system";
+  text: string;
+  timestamp: number;
+  deltas?: FileDelta[];
+}
+```
+
+
+################################################################################
+SECTION 3: APPLICATION SHELL & WINDOW UI SPECIFICATIONS
+################################################################################
+
+3.1 CUSTOM BORDERLESS WINDOW
+   - `frame: false` configured in Electron's `BrowserWindow`.
+   - Window Titlebar Height: `35px`, Background: `#181818`, Border Bottom: `1px solid #333333`.
+   - Window Draggable Region: Empty spaces must have CSS `-webkit-app-region: drag`.
+   - Non-Draggable Interactive Controls: All buttons, menus, and search bars must
+     have CSS `-webkit-app-region: no-drag`.
+
+3.2 TOP MENU BAR (LEFT SECTION)
+   - Brand Logo: Rocket icon from `@vscode/codicons` (`codicon-rocket`) in accent blue (`#007acc`).
+   - Menus: `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal`, `Help`.
+   - Hover Style: `#333333`, Padding: `4px 8px`, Font Size: `12px`.
+   - File Menu Dropdown:
+     * `Open Folder...` (Ctrl+O) -> Triggers `window.electron.openFolder()`.
+     * `New File` (Ctrl+N)
+     * `Save` (Ctrl+S) -> Writes active buffer to disk natively.
+     * `Close Folder` -> Resets `workspacePath` to `null`.
+
+3.3 TOP MENU BAR (CENTER SEARCH / BREADCRUMB INDICATOR)
+   - Container: 40% window width, Height: `24px`, Background: `#111111`, Border: `1px solid #333333`, Radius: `4px`.
+   - Dynamic Display Text:
+     * When workspace is open: `{workspaceName} - Antigravity IDE - {activeFileName}`
+     * When workspace is empty: `Antigravity IDE - Press Ctrl+O to Open a Folder`
+
+3.4 TOP MENU BAR (RIGHT CONTROLS)
+   - Profile Avatar: 22px purple circle (`#7c3aed`) with bold white capital letter 'J'.
+   - Native Window Actions:
+     * Minimize (`codicon-chrome-minimize`): Calls `window.electron.minimize()`.
+     * Maximize (`codicon-chrome-maximize`): Calls `window.electron.maximize()`.
+     * Close (`codicon-chrome-close`): Calls `window.electron.close()`, red hover background `#e81123`.
+
+3.5 LEFT ACTIVITY BAR (WIDTH: 48px, #181818)
+   - Fixed width: `48px`, background: `#181818`, border right: `1px solid #333333`.
+   - Strictly uses `@vscode/codicons`:
+     * Top: `codicon-files` (Explorer toggle), `codicon-search`, `codicon-source-control`,
+       `codicon-debug-alt` (Run & Debug), `codicon-extensions`.
+     * Bottom: `codicon-account` (Accounts), `codicon-settings-gear` (Settings).
+   - Active Indicator: Bright white icon (`#ffffff`) with an absolute left border: `2px solid #ffffff` or `#007acc`.
+   - Inactive: Dim grey (`#858585`), transitions to `#c5c5c5` on hover.
+   - Clicking `codicon-files` toggles Explorer sidebar between `250px` and `0px`.
+
+3.6 DYNAMIC EXPLORER SIDEBAR
+   - Default Width: `250px`, Background: `#181818`, Border Right: `1px solid #333333`.
+   - Header: `EXPLORER` (bold, 11px uppercase) + Action Buttons:
+     `New File` (`codicon-new-file`), `New Folder` (`codicon-new-folder`),
+     `Refresh` (`codicon-refresh`), `Collapse All` (`codicon-collapse-all`).
+   - Empty State Behavior:
+     If `workspacePath === null`:
+     Displays a centered container with:
+     * Text: "You have not yet opened a folder."
+     * Button: `[ Open Folder ]` (Background: `#007acc`, color: `#ffffff`, padding: `8px 16px`, radius: `4px`).
+   - Populated State Behavior:
+     * Root header with chevron and workspace name.
+     * Recursive folder list with rotating chevrons (`codicon-chevron-right` to `codicon-chevron-down`).
+     * Folders: `codicon-folder` / `codicon-folder-opened` in golden `#dcb67a`.
+     * Files: `codicon-file` in `#858585`.
+     * Four collapsible accordions at bottom: `> Outline`, `> Timeline`, `> go`, `> Java Projects`.
+
+3.7 MAIN EDITOR AREA & TABS BAR
+   - Tab System: Height `35px`, Background `#1e1e1e`.
+   - Inactive Tabs: Background `#252526`, text `#969696`, right border `1px solid #1e1e1e`.
+   - Active Tab: Background `#1e1e1e` (seamlessly merges into editor canvas), text `#ffffff`.
+   - Unsaved indicator: Solid white dot (`●`) that morphs into a close '✕' button on hover.
+   - Code Editor: Embedded Monaco Editor configured with `"vs-dark"`, auto-sizing, syntax highlighting.
+   - Empty State Watermark:
+     If no file open or empty workspace:
+     * Text: "Antigravity IDE" (20px, `#555555`)
+     * Subtext: "Press Ctrl+O to Open a Folder" (13px, `#666666`, monospace)
+
+3.8 DYNAMIC STATUS BAR (HEIGHT: 22px, #181818)
+   - Position: Fixed at absolute bottom.
+   - Left: Error count (`codicon-error` in red `#f87171` `0`) and Warning count (`codicon-warning` in yellow `#fbbf24` `0`).
+   - Right: Cursor position (`Ln {line}, Col {col}`), indentation (`Spaces: 2`), encoding (`UTF-8`), line sequence (`LF`), language mode, and status badge (`#d7ba7d` background, bold black text: `Antigravity IDE - Ready`).
+
+
+################################################################################
+SECTION 4: RIGHT-SIDE AGENT CHAT TOGGLE & SLIDING PANEL
+################################################################################
+
+4.1 FLOATING ACTION TOGGLE BUTTON
+   - Position: `position: fixed; right: 20px; bottom: 40px;` (or anchored on right border).
+   - Dimensions: `50px x 50px`, Circle border-radius `50%`.
+   - Visuals: Gradient background `linear-gradient(135deg, #1f6feb, #3fb950)`, box-shadow `0 4px 16px rgba(31, 111, 235, 0.4)`.
+   - Icon: Message bubble icon (`codicon-comment-discussion` or `💬`).
+   - Interaction: Clicking smoothly toggles the sliding panel open/closed with hover scale `1.08`.
+
+4.2 SLIDING CHAT PANEL CONTAINER
+   - CSS:
+     `position: fixed; right: -420px; top: 35px; width: 420px; height: calc(100vh - 35px - 22px);`
+     `background-color: #161b22; border-left: 1px solid #30363d; z-index: 90;`
+     `transition: right 300ms cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column;`
+   - Active Open Class: `right: 0px; box-shadow: -4px 0 24px rgba(0, 0, 0, 0.6);`.
+
+4.3 PANEL HEADER
+   - Height: `44px`, Padding: `0 16px`, Background: `#0d1117`, Border Bottom: `1px solid #30363d`.
+   - Left: Robot badge (`🤖 Antigravity+ 6-Agent Swarm`).
+   - Right: New Session button (`+`), Close button (`✕`).
+
+4.4 AGENT STATUS & PROGRESS TELEMETRY BAR
+   - Renders live state transitions:
+     * 🟡 `Thinking`: "Analyzing requirements and breaking down tasks..."
+     * 🟢 `Writing`: "Generating frontend/index.html (+68 lines)..."
+     * 🔄 `Waiting`: "Executing test harness and validating syntax..."
+     * 🛡️ `Auditing`: "Running security scanner (OWASP Top 10)..."
+     * ✅ `Done`: "Task completed successfully! 4 files created."
+     * ❌ `Error`: "Encountered issue: self-healing loop initiated."
+
+4.5 REAL-TIME FILE CHANGES TRACKER
+   - Interactive widget directly inside the chat panel summarizing disk alterations:
+     `📁 index.html  +68 lines  -0 lines  [Created]`
+     `📁 style.css   +42 lines  -0 lines  [Created]`
+     `📁 script.js   +23 lines  -0 lines  [Created]`
+     `📁 app.py      +55 lines  -0 lines  [Created]`
+   - Clicking on any modified file immediately opens that file in an active editor tab.
+
+4.6 CHAT MESSAGES DISPLAY
+   - Multi-turn conversation container with auto-scroll to bottom.
+   - User Bubble: Right-aligned, background `#1f6feb`, white text, border-radius `8px`.
+   - Agent Bubble: Left-aligned, background `#21262d`, border-left `3px solid #1f6feb`, text `#e6edf3`.
+   - Code Blocks: Rendered with syntax highlighting, copy-to-clipboard button, and line numbers.
+
+4.7 EMBEDDED MINI TERMINAL (120px)
+   - Height: `120px`, Background: `#000000`, Border: `1px solid #333333`, Radius: `4px`, Margin: `8px 16px`.
+   - Runs an interactive xterm.js instance bound to a background Node `node-pty` shell process.
+   - Displays real-time command output when the agent tests code, compiles, or runs scripts.
+
+4.8 BOTTOM CHAT INPUT BAR
+   - Anchored at bottom of panel: Padding `12px 16px`, Background `#0d1117`, Border Top `1px solid #30363d`.
+   - Input: Auto-expanding textarea with placeholder:
+     `"Ask anything, @ to mention, / for actions (e.g. Create a coffee shop landing page)"`.
+   - Key Handling: `Enter` (without Shift) triggers submission; `Shift+Enter` adds newline.
+   - Send Button: Solid blue `#1f6feb`, hover `#388bfd`, with upward send arrow.
+
+
+################################################################################
+SECTION 5: 6-AGENT SWARM ORCHESTRATION PIPELINE
+################################################################################
+
+When the user submits any prompt, it is routed through an autonomous
+6-Agent Swarm Orchestrator. The user only perceives a seamless, lightning-fast
+assistant, while internally the following agents execute sequentially or in parallel:
+
+                     ┌──────────────────────────────┐
+                     │         User Prompt          │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │   1. PLANNING AGENT (Llama)  │
+                     │   - Deconstruct requirements │
+                     │   - Formulate file blueprint │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │   2. CODING AGENT (Qwen)     │
+                     │   - Generate complete files  │
+                     │   - Native disk writes       │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │   3. TESTING AGENT (Qwen)    │
+                     │   - Write pytest / unit tests│
+                     │   - Execute in PTY terminal  │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │   4. SECURITY AGENT (Qwen)   │
+                     │   - OWASP vulnerability scan │
+                     │   - Secrets & sanitize audit │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │   5. QUALITY AGENT (Llama)   │
+                     │   - SOLID principles review  │
+                     │   - Cyclomatic complexity    │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │ 6. INFRASTRUCTURE AGENT(DevOps)
+                     │   - Dockerfile & K8s specs   │
+                     │   - Environment configurations
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │    ✅ TASK COMPLETION EVENT   │
+                     │  - Files added to explorer   │
+                     │  - Code loaded into tabs     │
+                     └──────────────────────────────┘
+
+5.1 AGENT SPECIFICATIONS & SPECIALIZATIONS:
+   1. Planning Agent:
+      - Task: Breaks down any prompt (e.g., "Build a full stack eCommerce app")
+        into an actionable DAG of discrete tasks.
+      - Output: Task list with expected file hierarchy.
+   2. Coding Agent:
+      - Task: Generates full, production-ready source code (HTML5, CSS3, JS, Python, Rust, Go).
+      - Output: Complete code buffers with zero truncation or ellipses (`// rest of code unchanged`).
+   3. Testing Agent:
+      - Task: Automatically drafts comprehensive unit and integration tests.
+      - Output: Test files (`test_app.py`, `app.spec.js`) and terminal execution command.
+   4. Security Agent:
+      - Task: Scans generated code for credential leaks, SQL injection, XSS vectors, and insecure headers.
+      - Output: Clean security assessment report.
+   5. Quality Agent:
+      - Task: Validates code clarity, DRY/SOLID compliance, type annotations, and maintainability.
+      - Output: Quality score (target 95%+).
+   6. Infrastructure Agent:
+      - Task: Emits containerization and deployment blueprints (`Dockerfile`, `docker-compose.yml`).
+      - Output: Ready-to-run container manifests.
+
+
+################################################################################
+SECTION 6: UNLIMITED CONTINUITY & SELF-HEALING ENGINES
+################################################################################
+
+6.1 CONTINUITY ENGINE (UNLIMITED TOKEN GENERATION)
+   - Problem: Standard LLMs truncate responses when hitting token limits on large projects.
+   - Solution:
+     * AST & Micro-Chunking: The continuity engine splits large files into cohesive modules, classes, and methods.
+     * Sequential Assembly: Agents write module by module, updating progress state between turns.
+     * State Persistence: Every token generation pass is serialized into a workspace snapshot folder (`.antigravity_state/`). If an interruption occurs, generation resumes seamlessly from the exact byte offset.
+
+6.2 SELF-HEALING & AUTONOMOUS BUG FIXING LOOP
+   - Workflow:
+     1. Agent writes code + tests.
+     2. Agent launches test runner inside the embedded terminal.
+     3. If tests fail (`exit code != 0`):
+        * The error stack trace is captured from the terminal stdout.
+        * A self-healing subagent parses the exception and failing line numbers.
+        * The patch is applied to the file via native disk write.
+        * Tests are re-executed automatically.
+     4. Loop repeats until 100% pass rate or max 5 iterations reached before notifying user.
+
+
+################################################################################
+SECTION 7: SECURE PRELOAD IPC BRIDGE SPECIFICATION
+################################################################################
+
+In `preload.js`, expose the following API under `window.electron`:
+
+```javascript
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electron', {
+  // Native OS Directory Picker (Zero Browser Permissions)
+  openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
+
+  // Recursive Disk Scanner
+  readDirRecursive: (folderPath) => ipcRenderer.invoke('fs:readDirRecursive', folderPath),
+
+  // File I/O
+  readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
+  writeFile: (filePath, data) => ipcRenderer.invoke('fs:writeFile', filePath, data),
+  deleteItem: (itemPath) => ipcRenderer.invoke('fs:deleteItem', itemPath),
+  renameItem: (oldPath, newPath) => ipcRenderer.invoke('fs:renameItem', oldPath, newPath),
+
+  // Terminal PTY Channel
+  sendTerminalInput: (command) => ipcRenderer.send('terminal:input', command),
+  onTerminalOutput: (callback) => ipcRenderer.on('terminal:output', (_, data) => callback(data)),
+
+  // Native Window Management
+  minimize: () => ipcRenderer.send('window:minimize'),
+  maximize: () => ipcRenderer.send('window:maximize'),
+  close: () => ipcRenderer.send('window:close'),
+});
+```
+
+
+################################################################################
+SECTION 8: VERIFICATION & ACCEPTANCE CRITERIA
+################################################################################
+
+The implementation will be deemed 100% complete and production-ready when:
+
+1. [x] Application launches as a native Electron borderless window without any browser sandbox errors.
+2. [x] Initial launch shows clean empty state (`workspacePath = null`), no mock folders, only centered `[ Open Folder ]` and watermark.
+3. [x] Clicking `File -> Open Folder` or pressing `Ctrl+O` launches the native OS directory selector, sets `workspacePath`, and loads the recursive tree into the Explorer sidebar.
+4. [x] Left Activity Bar strictly renders `@vscode/codicons` with white active left indicator.
+5. [x] Clicking `codicon-files` collapses/expands the Explorer sidebar between `250px` and `0px`.
+6. [x] Right-side floating toggle button smoothly slides open the 420px Agent Chat panel.
+7. [x] Submitting any user prompt triggers the 6-agent swarm lifecycle, streaming real-time status (🟡 Thinking -> 🟢 Writing -> 🔄 Waiting -> ✅ Done).
+8. [x] Generated files are written to disk natively, immediately populating the Explorer tree and editor tabs.
+9. [x] Self-healing and test-driven validation loop operates autonomously.
+
+================================================================================
+END OF SPECIFICATION — PROCEED WITH AUTONOMOUS IMPLEMENTATION
+================================================================================

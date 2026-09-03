@@ -1,0 +1,34 @@
+# Plugin Security Configuration
+# Fractal Multi-Agent Coding System - Prompt 24/25
+
+security:
+  scan_on_install: true
+  scan_on_update: true
+  verify_signatures: true
+  allow_unverified: false
+
+  vulnerability_scan:
+    enabled: true
+    known_vuln_database: "./state/plugin_vulns.json"
+    severity_threshold: "medium"
+
+  malware_scan:
+    enabled: true
+    risky_patterns:
+      - "os.system("
+      - "subprocess"
+      - "child_process"
+      - "eval("
+      - "__import__('os')"
+
+  permissions:
+    enforce_manifest_permissions: true
+    max_permissions: 10
+    denied_permissions:
+      - "network.bind_all"
+      - "files.write_global"
+
+  signatures:
+    required: true
+    trusted_keys_path: "./state/trusted_keys.pem"
+    signing_algorithm: "SHA256withRSA"

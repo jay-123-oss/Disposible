@@ -1,0 +1,32 @@
+# Dependency Resolution Configuration
+# Fractal Multi-Agent Coding System - Session 22/23
+
+dependency_resolution:
+  auto_resolve: true
+  conflict_check: true
+  compatibility_check: true
+  update_management: true
+
+  registries:
+    python: "https://pypi.org/simple"
+    node: "https://registry.npmjs.org"
+    go: "https://proxy.golang.org"
+    rust: "https://crates.io"
+    java: "https://repo1.maven.org/maven2"
+
+  version_policy:
+    preferred: "exact"
+    allow_prerelease: false
+    patch_updates: true
+    minor_updates: true
+    major_updates: false
+
+  conflicts:
+    resolution_strategy: "highest_version"
+    warn_on_override: true
+    fail_on_breaking: false
+
+  security:
+    scan_known_vulnerabilities: true
+    audit_on_resolve: true
+    require_signed_packages: false

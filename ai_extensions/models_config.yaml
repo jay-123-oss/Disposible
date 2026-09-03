@@ -1,0 +1,36 @@
+# Models Configuration for AI & ML Extensions Layer
+models:
+  primary:
+    name: "qwen2.5-coder:3b"
+    provider: "ollama"
+    endpoint: "http://localhost:11434"
+    context_window: 32768
+    temperature: 0.2
+    top_p: 0.95
+    cost_per_1k_tokens: 0.0
+    strengths: ["code_synthesis", "refactoring", "multi_language"]
+
+  fast:
+    name: "llama3.2:3b"
+    provider: "ollama"
+    endpoint: "http://localhost:11434"
+    context_window: 8192
+    temperature: 0.1
+    top_p: 0.9
+    cost_per_1k_tokens: 0.0
+    strengths: ["auto_completion", "quick_checks", "triage"]
+
+  complex_reasoning:
+    name: "mistral:7b"
+    provider: "ollama"
+    endpoint: "http://localhost:11434"
+    context_window: 32768
+    temperature: 0.3
+    top_p: 0.95
+    cost_per_1k_tokens: 0.0
+    strengths: ["architectural_design", "bug_prediction", "security_review"]
+
+routing_strategy:
+  default: "qwen2.5-coder:3b"
+  low_latency: "llama3.2:3b"
+  deep_analysis: "mistral:7b"

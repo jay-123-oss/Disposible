@@ -1,0 +1,52 @@
+{
+  "acceptance_criteria": [
+    {
+      "category": "FUNCTIONAL",
+      "criteria": "All business workflows and user operations execute with 100% success rate without uncaught exceptions.",
+      "target_percent": 100.0,
+      "mandatory": true
+    },
+    {
+      "category": "NON_FUNCTIONAL",
+      "criteria": "Security, performance SLAs, and system resilience metrics satisfy non-functional requirements.",
+      "target_percent": 95.0,
+      "mandatory": true
+    },
+    {
+      "category": "UI_UX",
+      "criteria": "User interface provides responsive navigation, accessibility compliance (WCAG 2.1 AA), and zero dead links.",
+      "target_percent": 90.0,
+      "mandatory": true
+    },
+    {
+      "category": "INTEGRATION",
+      "criteria": "All inter-agent message buses, database connections, and external API connectors function cleanly.",
+      "target_percent": 100.0,
+      "mandatory": true
+    },
+    {
+      "category": "DATA_INTEGRITY",
+      "criteria": "Transactions maintain ACID properties with zero record corruption, drift, or state inconsistency.",
+      "target_percent": 100.0,
+      "mandatory": true
+    },
+    {
+      "category": "SECURITY",
+      "criteria": "Strict RBAC enforcement, encrypted data transmission, and compliance validation.",
+      "target_percent": 100.0,
+      "mandatory": true
+    },
+    {
+      "category": "PERFORMANCE",
+      "criteria": "95th percentile response times below 200ms and sustained throughput above 100 RPS.",
+      "target_percent": 95.0,
+      "mandatory": true
+    },
+    {
+      "category": "USER_SATISFACTION",
+      "criteria": "Evaluated user feedback rating exceeds 4.5 out of 5.0 points.",
+      "target_score": 4.5,
+      "mandatory": true
+    }
+  ]
+}

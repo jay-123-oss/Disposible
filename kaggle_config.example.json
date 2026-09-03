@@ -1,0 +1,15 @@
+{
+  "username": "your_kaggle_username",
+  "key": "your_kaggle_key",
+  "notebook_name": "6-llm-agents",
+  "accelerator": "gpu-t4",
+  "enable_internet": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "endpoint": "https://your-tunnel.trycloudflare.com",
+  "models": [
+    "qwen2.5-coder:3b",
+    "llama3.2:3b",
+    "nomic-embed-text"
+  ]
+}

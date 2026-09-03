@@ -1,0 +1,11 @@
+raft:
+  algorithm: "raft"
+  election_timeout_min_ms: 800
+  election_timeout_max_ms: 1200
+  heartbeat_interval_ms: 500
+  log_retention_entries: 10000
+  snapshot_threshold: 5000
+  max_entries_per_append: 100
+  storage:
+    engine: "memory"
+    wal_dir: "./data/raft-wal"

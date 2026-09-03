@@ -1,0 +1,32 @@
+thresholds:
+  response_time:
+    target_ms: 200
+    critical_ms: 500
+    percentile: 95
+  throughput:
+    target_rps: 100
+    critical_rps: 50
+  error_rate:
+    target_percent: 1.0
+    critical_percent: 5.0
+  cpu_usage:
+    target_percent: 70.0
+    critical_percent: 90.0
+  memory_usage:
+    target_percent: 70.0
+    critical_percent: 90.0
+  disk_io:
+    target_percent: 50.0
+    critical_percent: 80.0
+  network_io:
+    target_percent: 50.0
+    critical_percent: 80.0
+  latency:
+    target_ms: 50.0
+    critical_ms: 100.0
+  connection_time:
+    target_ms: 10.0
+    critical_ms: 50.0
+  dns_resolution:
+    target_ms: 5.0
+    critical_ms: 20.0

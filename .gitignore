@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Antigravity local state, snapshots & temporary files
+.antigravity_snapshots/
+.antigravity_state/
+.antigravity_preview/
+.antigravity_screenshots/
+logs/
+temp/
+state/
+*.log
+
+# Sensitive environment credentials & local keys
+.env
+.env.local
+.env.*.local
+kaggle_config.json
+sample.txt
+
+# Build outputs & caches
+dist/
+build/
+*.egg-info/
+.cache/
+.vscode/
+.idea/

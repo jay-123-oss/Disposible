@@ -1,0 +1,15 @@
+# Embeddings Configuration for Code Intelligence
+embeddings:
+  model: "nomic-embed-text"
+  dimension: 768
+  chunk_size: 512
+  chunk_overlap: 64
+  distance_metric: "cosine"
+  index_type: "HNSW"
+  storage:
+    backend: "faiss"
+    index_path: "./data/embeddings/code_index.bin"
+    metadata_path: "./data/embeddings/metadata.json"
+  filtering:
+    supported_extensions: [".py", ".js", ".ts", ".go", ".rs", ".java", ".md", ".yaml", ".json"]
+    exclude_dirs: [".git", "venv", "__pycache__", "node_modules", "target"]

@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "name": "__PLUGIN_NAME__",
+  "version": "__PLUGIN_VERSION__",
+  "author": "__PLUGIN_AUTHOR__",
+  "description": "__PLUGIN_DESCRIPTION__",
+  "entry_point": "__PLUGIN_NAME__",
+  "dependencies": [],
+  "requires_host_version": ">=1.0.0",
+  "permissions": ["read"],
+  "hooks": ["on_generate"],
+  "events": ["plugin.ran"],
+  "filters": ["code"],
+  "actions": ["run"]
+}

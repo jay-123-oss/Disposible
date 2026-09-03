@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+        stage('Install') {
+            steps { sh 'pip install -r requirements.txt' }
+        }
+        stage('Test') {
+            steps { sh 'python -m unittest discover -s tests -t .' }
+        }
+        stage('Build') {
+            steps { sh 'python setup.py bdist_wheel' }
+        }
+    }
+}

@@ -1,0 +1,59 @@
+openapi: 3.0.0
+info:
+  title: Fractal Multi-Agent System REST API
+  version: 1.0.0
+  description: HTTP API interface for submitting tasks, inspecting agent states, and querying system telemetry.
+paths:
+  /api/v1/tasks:
+    post:
+      summary: Submit a task
+      operationId: submitTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskSubmission'
+      responses:
+        '202':
+          description: Task accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskEnvelope'
+    get:
+      summary: List all active tasks
+      operationId: listTasks
+      responses:
+        '200':
+          description: List of tasks
+  /api/v1/health:
+    get:
+      summary: Health check endpoint
+      operationId: getHealth
+      responses:
+        '200':
+          description: System health status
+components:
+  schemas:
+    TaskSubmission:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+        capability:
+          type: string
+        priority:
+          type: string
+          enum: [CRITICAL, HIGH, NORMAL, LOW]
+    TaskEnvelope:
+      type: object
+      properties:
+        task_id:
+          type: string
+        status:
+          type: string
+        output:
+          type: object

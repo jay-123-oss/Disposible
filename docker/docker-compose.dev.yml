@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  fractal-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fractal-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - FRACTAL_ENV=development
+      - FRACTAL_LOG_LEVEL=DEBUG
+    volumes:
+      - ..:/app
+    command: python app.py

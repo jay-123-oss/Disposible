@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  fractal-core:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fractal-core
+    ports:
+      - "8000:8000"
+    environment:
+      - FRACTAL_ENV=production
+      - FRACTAL_MAX_RAM=8192
+    volumes:
+      - ../state:/app/state
+      - ../logs:/app/logs
+    restart: unless-stopped

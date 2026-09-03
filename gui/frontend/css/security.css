@@ -1,0 +1,15 @@
+/* Security Dashboard CSS */
+.security-score-card {
+  text-align: center;
+  padding: 40px;
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, rgba(18, 24, 38, 0.9) 70%);
+  border: 1px solid var(--accent-green);
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+.score-gauge {
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--accent-green);
+}

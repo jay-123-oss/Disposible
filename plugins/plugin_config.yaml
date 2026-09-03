@@ -1,0 +1,39 @@
+# Plugin System Layer Configuration
+# Fractal Multi-Agent Coding System - Prompt 24/25
+
+plugins:
+  enabled: true
+  auto_load: true
+  auto_update: true
+  sandbox_mode: true
+
+  store:
+    local_path: "./plugins/"
+    remote_url: "https://plugins.fractal-system.com"
+    cache_enabled: true
+
+  security:
+    scan_on_install: true
+    scan_on_update: true
+    verify_signatures: true
+    allow_unverified: false
+
+  marketplace:
+    enabled: true
+    search_enabled: true
+    recommendations_enabled: true
+
+  versions:
+    check_on_startup: true
+    auto_update: false
+    rollback_on_failure: true
+
+  dependencies:
+    auto_resolve: true
+    conflict_check: true
+    compatibility_check: true
+
+  logging:
+    plugin_events: true
+    plugin_errors: true
+    plugin_performance: true

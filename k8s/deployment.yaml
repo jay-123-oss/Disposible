@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fractal-core-deployment
+  namespace: fractal-system
+  labels:
+    app: fractal-core
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fractal-core
+  template:
+    metadata:
+      labels:
+        app: fractal-core
+    spec:
+      containers:
+      - name: fractal-container
+        image: docker.io/fractal_agent_system:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            memory: "8192Mi"
+            cpu: "4000m"
+          requests:
+            memory: "2048Mi"
+            cpu: "1000m"
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20

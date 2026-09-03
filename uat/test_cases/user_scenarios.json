@@ -1,0 +1,32 @@
+{
+  "user_scenarios": [
+    {
+      "id": "US-001",
+      "name": "New User Onboarding",
+      "target_role": "NEW_USER",
+      "steps": ["Registration Form", "Email Verification", "Profile Setup", "First Task Creation"],
+      "expected_result": "User account active, profile completed, initial task enqueued"
+    },
+    {
+      "id": "US-002",
+      "name": "Existing User Workflow",
+      "target_role": "EXISTING_USER",
+      "steps": ["Login with MFA", "Access Dashboard", "Query Active Task", "Download Report"],
+      "expected_result": "Dashboard renders immediately, active task details displayed, report exported"
+    },
+    {
+      "id": "US-003",
+      "name": "Admin User Operations",
+      "target_role": "ADMIN_USER",
+      "steps": ["Admin Login", "Cluster Health Audit", "Adjust System Quotas", "Inspect Audit Log"],
+      "expected_result": "Admin privileges validated, quota updated, audit log entry written"
+    },
+    {
+      "id": "US-004",
+      "name": "Guest User Exploration",
+      "target_role": "GUEST_USER",
+      "steps": ["Browse Public Documentation", "View System Status", "Attempt Protected Route"],
+      "expected_result": "Public docs visible, protected route prompts authentication with 401/403"
+    }
+  ]
+}

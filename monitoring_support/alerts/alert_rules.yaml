@@ -1,0 +1,42 @@
+groups:
+  - name: production_monitoring_alerts
+    rules:
+      - alert: HighCpuUtilization
+        expr: system_cpu_percent > 80
+        for: 1m
+        labels:
+          severity: high
+        annotations:
+          summary: "Host CPU utilization exceeded 80%"
+
+      - alert: HighMemoryConsumption
+        expr: system_memory_mb > 6553
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAM quota threshold breached (>80% of 8192 MB limit)"
+
+      - alert: ResponseTimeDegradation
+        expr: latency_p95_ms > 200
+        for: 30s
+        labels:
+          severity: high
+        annotations:
+          summary: "Response latency P95 exceeded 200ms SLA"
+
+      - alert: HighErrorRate
+        expr: error_rate_percent > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service error rate exceeded critical threshold 5%"
+
+      - alert: AgentUnresponsive
+        expr: unresponsive_agents_count > 0
+        for: 15s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Agent heartbeat timeout detected"

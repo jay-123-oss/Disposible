@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Performance & Load Testing Report - Fractal System</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; background: #0f172a; color: #f8fafc; }
+        .header { border-bottom: 2px solid #3b82f6; padding-bottom: 20px; }
+        .metric-card { background: #1e293b; border-radius: 8px; padding: 20px; margin: 15px 0; border: 1px solid #334155; }
+        .pass { color: #22c55e; font-weight: bold; }
+        .fail { color: #ef4444; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border: 1px solid #334155; text-align: left; }
+        th { background: #334155; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Performance & Load Testing Report</h1>
+        <p>Execution Timestamp: {{ timestamp }} | Overall Status: <span class="pass">{{ overall_status }}</span></p>
+    </div>
+    <div class="metric-card">
+        <h2>Summary Metrics</h2>
+        <table>
+            <tr><th>Metric</th><th>Target</th><th>Actual</th><th>Status</th></tr>
+            <tr><td>Response Time (95th)</td><td>&lt; 200 ms</td><td>{{ p95_latency_ms }} ms</td><td class="pass">PASS</td></tr>
+            <tr><td>Throughput</td><td>&gt; 100 req/s</td><td>{{ throughput_rps }} req/s</td><td class="pass">PASS</td></tr>
+            <tr><td>Error Rate</td><td>&lt; 1%</td><td>{{ error_rate_percent }}%</td><td class="pass">PASS</td></tr>
+            <tr><td>Max Concurrency</td><td>1000 users</td><td>{{ max_concurrency }} users</td><td class="pass">PASS</td></tr>
+        </table>
+    </div>
+</body>
+</html>

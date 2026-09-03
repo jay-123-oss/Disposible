@@ -1,0 +1,38 @@
+/* Task Tracker UI CSS */
+.task-table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.task-table th {
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-secondary);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-card);
+  font-weight: 600;
+}
+
+.task-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-card);
+  color: var(--text-primary);
+}
+
+.task-badge {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.task-completed { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+.task-queued { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }

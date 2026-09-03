@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fractal-cluster
+  labels:
+    app: fractal-distributed
+spec:
+  serviceName: "fractal-headless"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fractal-distributed
+  template:
+    metadata:
+      labels:
+        app: fractal-distributed
+    spec:
+      containers:
+        - name: fractal-node
+          image: fractal/node:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: cluster-rpc
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CLUSTER_NAME
+              value: "fractal-cluster"
+            - name: MIN_QUORUM
+              value: "2"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: config
+              mountPath: /app/config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+      volumes:
+        - name: config
+          configMap:
+            name: fractal-cluster-config

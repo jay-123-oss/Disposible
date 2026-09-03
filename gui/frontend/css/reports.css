@@ -1,0 +1,20 @@
+/* Report Viewer UI CSS */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.report-item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-item-card:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-3px);
+}

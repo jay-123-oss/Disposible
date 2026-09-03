@@ -1,0 +1,71 @@
+distributed:
+  cluster:
+    name: "fractal-cluster"
+    size: 3
+    min_size: 3
+    max_size: 10
+    
+  nodes:
+    - id: "node-1"
+      host: "192.168.1.10"
+      port: 8000
+      role: "leader"
+    - id: "node-2"
+      host: "192.168.1.11"
+      port: 8000
+      role: "follower"
+    - id: "node-3"
+      host: "192.168.1.12"
+      port: 8000
+      role: "follower"
+  
+  load_balancing:
+    algorithm: "round_robin"
+    health_check_interval: 10
+    retries: 3
+    timeout: 30
+    
+  service_discovery:
+    registry_type: "etcd"
+    heartbeat_interval: 5
+    ttl_seconds: 15
+    cache_enabled: true
+    
+  state_synchronization:
+    mode: "incremental"
+    sync_interval: 30
+    conflict_resolution: "last_write_wins"
+    
+  message_broker:
+    type: "rabbitmq"
+    queue_prefix: "fractal"
+    durable: true
+    auto_ack: false
+    
+  fault_tolerance:
+    failure_threshold: 3
+    recovery_timeout: 60
+    circuit_breaker: true
+    retry_max: 3
+    
+  replication:
+    factor: 3
+    sync_mode: "async"
+    consistency_level: "quorum"
+    
+  consensus:
+    algorithm: "raft"
+    election_timeout: 1000
+    heartbeat_interval: 500
+    log_retention: 10000
+    
+  security:
+    tls_enabled: true
+    mutual_tls: true
+    cert_path: "/etc/ssl/certs/"
+    key_path: "/etc/ssl/private/"
+    
+  monitoring:
+    metrics_interval: 10
+    alert_threshold: 80
+    log_aggregation: true

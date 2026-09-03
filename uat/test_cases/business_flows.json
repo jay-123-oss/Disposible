@@ -1,0 +1,28 @@
+{
+  "business_flows": [
+    {
+      "id": "BF-001",
+      "name": "Order Processing Flow",
+      "steps": ["Select Service", "Calculate Price", "Checkout", "Reserve Capacity"],
+      "expected_result": "Order confirmed, state persisted, capacity allocated"
+    },
+    {
+      "id": "BF-002",
+      "name": "Payment Processing Flow",
+      "steps": ["Submit Payment Token", "Process Gateway Auth", "Generate Invoice", "Reconcile Ledger"],
+      "expected_result": "Payment settled, invoice generated, receipt transmitted"
+    },
+    {
+      "id": "BF-003",
+      "name": "Notification Dispatch Flow",
+      "steps": ["Trigger Event", "Select Template", "Render Variables", "Dispatch Webhook/Email"],
+      "expected_result": "Notification delivered with 200 OK delivery receipt"
+    },
+    {
+      "id": "BF-004",
+      "name": "Reporting & Analytics Flow",
+      "steps": ["Aggregate Raw Metrics", "Compute KPI Summary", "Render Chart Series", "Publish Artifact"],
+      "expected_result": "Executive summary created and accessible via dashboard"
+    }
+  ]
+}

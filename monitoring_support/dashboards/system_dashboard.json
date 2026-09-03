@@ -1,0 +1,34 @@
+{
+  "id": "dash_system_overview",
+  "title": "Production System Health & Resources",
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU Utilization (%)",
+      "type": "gauge",
+      "thresholds": {"warn": 70, "crit": 80},
+      "query": "system_cpu_percent"
+    },
+    {
+      "id": 2,
+      "title": "RAM Usage (MB)",
+      "type": "gauge",
+      "thresholds": {"warn": 6500, "crit": 8192},
+      "query": "system_memory_mb"
+    },
+    {
+      "id": 3,
+      "title": "Disk I/O & Capacity (%)",
+      "type": "graph",
+      "thresholds": {"crit": 85},
+      "query": "system_disk_usage_percent"
+    },
+    {
+      "id": 4,
+      "title": "Network Bandwidth (KB/s)",
+      "type": "graph",
+      "query": "system_network_throughput_kbps"
+    }
+  ]
+}

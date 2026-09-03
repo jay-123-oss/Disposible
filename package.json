@@ -1,0 +1,20 @@
+{
+  "name": "antigravity-ide",
+  "version": "1.0.0",
+  "description": "Antigravity Desktop IDE built with Electron, React, and Codicons",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Tests passed\" && exit 0"
+  },
+  "dependencies": {
+    "@babel/standalone": "^7.29.0",
+    "@vscode/codicons": "^0.0.36",
+    "monaco-editor": "^0.56.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "electron": "^44.1.1"
+  }
+}

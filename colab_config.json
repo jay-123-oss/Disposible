@@ -1,0 +1,12 @@
+{
+  "runtime": "GPU",
+  "accelerator": "T4",
+  "timeout_seconds": 3600,
+  "tunnel_type": "ngrok",
+  "ngrok_authtoken": "",
+  "models": [
+    "qwen2.5-coder:3b",
+    "llama3.2:3b",
+    "nomic-embed-text"
+  ]
+}

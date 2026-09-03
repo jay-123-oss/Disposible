@@ -1,0 +1,22 @@
+# Plugin Marketplace Configuration
+# Fractal Multi-Agent Coding System - Prompt 24/25
+
+marketplace:
+  enabled: true
+  search_enabled: true
+  recommendations_enabled: true
+  ratings_enabled: true
+  reviews_enabled: true
+
+  catalog_refresh_interval_seconds: 3600
+  max_search_results: 25
+  recommended_limit: 5
+
+  moderation:
+    require_review: true
+    auto_approve_rating_threshold: 4.0
+    community_reporting: true
+
+  pricing:
+    free_only: false
+    allow_paid: true

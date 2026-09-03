@@ -1,0 +1,1221 @@
+system:
+  name: "FractalMultiAgentSystem"
+  version: "1.0.0"
+  max_depth: 2              # Parent -> Child -> Grandchild only
+  max_agents: 200
+  max_concurrent: 10
+  session_timeout: 3600
+
+llm:
+  model: "qwen2.5-coder:3b"
+  endpoint: "http://localhost:11434"
+  max_tokens: 4096
+  temperature: 0.7
+  timeout: 60
+
+agents:
+  root_agents:
+    - name: "PLANNER"
+      model: "llama3.2:3b"
+      resources_mb: 512
+      capabilities: ["intent", "planning", "decomposition"]
+    
+    - name: "DEVELOPER"
+      model: "qwen2.5-coder:3b"
+      resources_mb: 512
+      capabilities: ["coding", "api", "database"]
+    
+    - name: "TESTER"
+      model: "qwen2.5-coder:3b"
+      resources_mb: 512
+      capabilities: ["testing", "mock", "validation"]
+    
+    - name: "SECURITY"
+      model: "qwen2.5-coder:3b"
+      resources_mb: 512
+      capabilities: ["security", "audit", "compliance"]
+    
+    - name: "DEPLOYMENT"
+      model: "llama3.2:3b"
+      resources_mb: 512
+      capabilities: ["deploy", "docker", "cicd"]
+    
+    - name: "MONITOR"
+      model: "llama3.2:3b"
+      resources_mb: 256
+      capabilities: ["monitor", "metrics", "alert"]
+
+sandbox:
+  enabled: true
+  docker: false             # Set true if Docker available
+  timeout_seconds: 30
+  max_memory_mb: 256
+  temp_dir: "./temp"
+
+quality:
+  min_score: 85
+  require_approval: true
+  test_coverage_min: 80
+  max_retries: 3
+
+state:
+  compression_threshold: 4096
+  checkpoint_interval: 5
+  persist_path: "./state/"
+  cleanup_old: true
+  max_checkpoints: 10
+
+logging:
+  level: "INFO"
+  path: "./logs/"
+  max_size_mb: 100
+  retain_days: 7
+
+planning:
+  max_questions: 10
+  min_confidence: 70
+  require_validation: true
+  auto_approve_threshold: 85
+  
+  question_templates:
+    project_type:
+      - "What type of project are you building? (API, Web, CLI, Microservice)"
+      - "Is this a greenfield project or extending an existing codebase?"
+    tech_stack:
+      - "What primary programming language do you prefer? (python, node, go, rust, java)"
+      - "Do you have a preferred framework or database?"
+    features:
+      - "What core features are required for the initial MVP? (e.g., auth, CRUD, file upload)"
+      - "Are external integrations or third-party APIs needed?"
+    constraints:
+      - "What are your performance, memory, or deployment constraints?"
+      - "What is your target timeline or resource limit?"
+    success_criteria:
+      - "What latency or throughput targets must be satisfied?"
+      - "What test coverage percentage is required?"
+
+  tech_stack:
+    default_language: "python"
+    allowed_languages: ["python", "node", "go", "rust", "java"]
+    
+  risk:
+    thresholds:
+      low: 30
+      medium: 60
+      high: 80
+      critical: 100
+      
+  task_decomposition:
+    default_max_tasks: 50
+    min_tasks_per_phase: 3
+    max_phases: 10
+
+coding:
+  framework:
+    default: "fastapi"
+    alternatives: ["express", "flask", "nestjs"]
+    
+  api:
+    version: "v1"
+    prefix: "/api"
+    tags: ["authentication", "users", "public"]
+    
+  database:
+    orm: "sqlalchemy"
+    default_engine: "postgresql"
+    
+  security:
+    jwt_algorithm: "HS256"
+    token_expiry_hours: 24
+    password_hashing: "bcrypt"
+    
+  middleware:
+    enable_logging: true
+    enable_rate_limiting: true
+    rate_limit_requests: 100
+    rate_limit_window_seconds: 60
+    
+  output:
+    generate_openapi: true
+    generate_tests: true
+    include_comments: true
+    formatting: "black"
+
+testing:
+  unit_test:
+    framework: "pytest"
+    coverage_threshold: 80
+    timeout_seconds: 5
+    
+  integration_test:
+    enabled: true
+    timeout_seconds: 30
+    retry_count: 3
+    
+  mock:
+    generate_mocks: true
+    mock_data_size: 10
+    random_seed: 42
+    
+  performance:
+    enabled: true
+    concurrency_levels: [10, 50, 100]
+    duration_seconds: 30
+    timeout_seconds: 60
+    
+  coverage:
+    enabled: true
+    threshold: 80
+    fail_below_threshold: true
+    
+  validation:
+    require_all_passed: true
+    max_failures: 0
+    quality_gate_threshold: 85
+    
+  reporting:
+    formats: ["json", "html", "markdown"]
+    detailed: true
+    save_path: "./test_reports/"
+
+security:
+  auth:
+    min_password_length: 8
+    require_special_chars: true
+    require_numbers: true
+    require_uppercase: true
+    password_hashing: "bcrypt"
+    hash_rounds: 12
+    jwt_algorithm: "RS256"
+    token_expiry_hours: 24
+    refresh_token_expiry_days: 7
+    
+  permissions:
+    enforce_rbac: true
+    default_role: "user"
+    roles: ["user", "admin", "super_admin"]
+    
+  scanning:
+    sql_injection: true
+    xss: true
+    csrf: true
+    parameter_validation: true
+    
+  encryption:
+    min_key_size: 2048
+    algorithms: ["AES-256", "RSA-2048"]
+    enable_at_rest: true
+    enable_in_transit: true
+    
+  compliance:
+    gdpr: true
+    hipaa: false
+    pci: false
+    data_retention_days: 365
+    breach_notification_enabled: true
+    
+  quality_gates:
+    security_score_min: 85
+    critical_vulnerabilities: 0
+    high_vulnerabilities: 0
+    medium_vulnerabilities: 5
+    low_vulnerabilities: 10
+
+quality:
+  formatting:
+    style: "black"
+    indent_size: 4
+    line_length: 88
+    quote_style: "double"
+    
+  style:
+    naming_conventions: true
+    comment_required: true
+    import_ordering: true
+    
+  complexity:
+    max_cyclomatic: 10
+    max_cognitive: 15
+    max_nesting: 4
+    
+  best_practices:
+    check_solid: true
+    check_dry: true
+    check_patterns: true
+    
+  documentation:
+    generate_jsdoc: true
+    generate_swagger: true
+    generate_readme: true
+    
+  review:
+    check_logic: true
+    check_bugs: true
+    check_edge_cases: true
+    
+  performance:
+    analyze_algorithms: true
+    suggest_caching: true
+    optimize_queries: true
+    
+  refactoring:
+    find_duplicates: true
+    suggest_splitting: true
+    suggest_merging: true
+    
+  dependencies:
+    check_versions: true
+    check_security: true
+    check_compatibility: true
+    
+  quality_gates:
+    min_score: 85
+    max_complexity: 10
+    max_issues: 10
+    max_warnings: 20
+    
+  metrics:
+    weights:
+      readability: 25
+      maintainability: 25
+      performance: 20
+      security: 20
+      documentation: 10
+
+infrastructure:
+  docker:
+    base_image: "python:3.10-slim"
+    optimize_layers: true
+    multi_stage: true
+    
+  compose:
+    services: ["api", "db", "cache"]
+    networks: ["frontend", "backend"]
+    volumes: ["data", "logs"]
+    
+  cicd:
+    platforms: ["github_actions", "jenkins"]
+    triggers: ["push", "pull_request"]
+    stages: ["build", "test", "deploy"]
+    
+  kubernetes:
+    replicas: 3
+    namespace: "production"
+    ingress_enabled: true
+    auto_scaling: true
+    
+  terraform:
+    provider: "aws"
+    region: "us-east-1"
+    backend: "s3"
+    
+  monitoring:
+    prometheus_retention: "15d"
+    grafana_dashboards: true
+    alert_rules: true
+    
+  logging:
+    elasticsearch_replicas: 1
+    retention_days: 30
+    log_level: "info"
+    
+  secrets:
+    provider: "vault"
+    auto_rotate: true
+    encryption: "aes-256-gcm"
+    
+  network:
+    firewall_enabled: true
+    vpc_cidr: "10.0.0.0/16"
+    service_mesh: "istio"
+    
+  backup:
+    database_backup: true
+    file_backup: true
+    retention_days: 7
+    schedule: "0 2 * * *"
+
+commstate:
+  task_store:
+    max_tasks: 1000
+    retention_days: 30
+    persistence_path: "./data/tasks/"
+    
+  team_store:
+    max_teams: 50
+    default_teams: ["core", "frontend", "backend", "testing"]
+    
+  mailbox:
+    max_messages_per_agent: 100
+    message_timeout_seconds: 300
+    persistence_path: "./data/mailbox/"
+    
+  registry:
+    heartbeat_interval_seconds: 30
+    cleanup_interval_seconds: 60
+    stale_timeout_seconds: 120
+    
+  traces:
+    max_traces: 1000
+    decay_rate: 0.1
+    decay_interval_seconds: 60
+    persistence_path: "./data/traces/"
+    
+  artifacts:
+    max_size_mb: 100
+    retention_days: 7
+    persistence_path: "./data/artifacts/"
+    
+  sessions:
+    timeout_seconds: 3600
+    persistence_path: "./data/sessions/"
+    max_sessions: 100
+    
+  checkpoints:
+    max_checkpoints: 10
+    auto_checkpoint_interval: 300
+    persistence_path: "./data/checkpoints/"
+    
+  synchronizer:
+    sync_interval_seconds: 30
+    conflict_resolution: "last_write_wins"
+    
+  events:
+    max_events: 10000
+    retention_days: 1
+    
+  compressor:
+    compression_threshold_tokens: 4096
+    max_summary_tokens: 500
+    offline_storage_path: "./data/compressed/"
+
+monitoring:
+  debugger:
+    enabled: true
+    breakpoint_on_error: true
+    max_stack_depth: 20
+    
+  metrics:
+    collection_interval_seconds: 10
+    retention_days: 7
+    persistence_path: "./data/metrics/"
+    
+  alerts:
+    critical_threshold: 90
+    warning_threshold: 70
+    info_threshold: 50
+    alert_escalation_interval: 300
+    
+  drift:
+    detection_interval_seconds: 60
+    performance_threshold: 20
+    accuracy_threshold: 10
+    behavior_threshold: 15
+    
+  audit:
+    log_level: "INFO"
+    persistence_path: "./data/logs/"
+    retention_days: 30
+    
+  performance:
+    response_time_threshold_ms: 200
+    throughput_threshold_rps: 100
+    latency_threshold_ms: 500
+    
+  resources:
+    cpu_threshold: 80
+    memory_threshold: 80
+    disk_threshold: 85
+    network_threshold: 70
+    
+  errors:
+    aggregation_interval_seconds: 60
+    pattern_detection_threshold: 5
+    
+  tracing:
+    enabled: true
+    sampling_rate: 0.1
+    persistence_path: "./data/traces/"
+    
+  dashboards:
+    auto_refresh_seconds: 30
+    include_all_metrics: true
+    
+  reports:
+    daily_time: "23:59"
+    weekly_day: "Sunday"
+    monthly_day: 1
+    report_path: "./reports/"
+    
+  health:
+    check_interval_seconds: 30
+    timeout_seconds: 5
+    max_retries: 3
+    
+  predictive:
+    enabled: true
+    lookback_days: 7
+    prediction_horizon_hours: 24
+    confidence_threshold: 80
+
+integration:
+  system:
+    name: "FractalMultiAgentSystem"
+    version: "1.0.0"
+    start_agents_on_init: true
+    
+  initialization:
+    load_config: true
+    register_agents: true
+    start_services: true
+    health_check: true
+    
+  factory:
+    create_all_agents: true
+    validate_agent_creation: true
+    log_agent_creation: true
+    
+  dependency:
+    inject_core: true
+    inject_agents: true
+    inject_services: true
+    validate_dependencies: true
+    
+  interfaces:
+    cli_enabled: true
+    interactive_enabled: true
+    api_enabled: false
+    
+  workflows:
+    default_workflow: "linear"
+    max_parallel_workflows: 5
+    workflow_timeout_seconds: 300
+    
+  error:
+    catch_all: true
+    log_errors: true
+    attempt_recovery: true
+    max_recovery_attempts: 3
+    
+  shutdown:
+    timeout_seconds: 30
+    force_timeout_seconds: 10
+    cleanup_enabled: true
+    
+  health:
+    check_interval_seconds: 30
+    report_interval_seconds: 60
+    timeout_seconds: 5
+    
+  resources:
+    max_threads: 10
+    max_connections: 20
+    max_files: 100
+    max_memory_mb: 8192
+
+# ==============================================================================
+# Testing & Validation Configuration
+# ==============================================================================
+testing:
+  system:
+    test_timeout_seconds: 60
+    parallel_execution: true
+    max_parallel_tests: 4
+    
+  integration:
+    api_base_url: "http://localhost:8000"
+    test_database: "test_db"
+    external_services_mock: true
+    
+  unit:
+    test_framework: "pytest"
+    coverage_threshold: 80
+    fail_on_coverage_below: true
+    
+  performance:
+    load_concurrency: [10, 50, 100]
+    test_duration_seconds: 30
+    max_response_time_ms: 200
+    
+  security:
+    auth_test_users: ["test_user", "test_admin"]
+    injection_test_payloads: true
+    compliance_standards: ["gdpr"]
+    
+  quality:
+    code_quality_threshold: 85
+    documentation_required: true
+    style_enforced: true
+    max_complexity: 10
+    
+  validation:
+    strict_mode: true
+    fail_on_error: true
+    validate_edge_cases: true
+    
+  coverage:
+    line_coverage_min: 80
+    branch_coverage_min: 70
+    function_coverage_min: 90
+    report_formats: ["html", "json", "xml"]
+    
+  data:
+    fixtures_path: "./tests/fixtures/"
+    seed_data_enabled: true
+    mock_data_enabled: true
+    
+  mock:
+    api_mock_port: 8080
+    db_mock_enabled: true
+    service_mock_timeout: 30
+    
+  reports:
+    html_path: "./test_reports/html/"
+    json_path: "./test_reports/json/"
+    junit_path: "./test_reports/junit/"
+    store_days: 30
+
+# ==============================================================================
+# Documentation Configuration
+# ==============================================================================
+documentation:
+  system:
+    output_format: "markdown"
+    include_diagrams: true
+    diagram_format: "mermaid"
+  api:
+    openapi_version: "3.0.0"
+    include_examples: true
+    generate_swagger: true
+  user_guide:
+    include_screenshots: false
+    include_videos: false
+    include_workflows: true
+  developer_guide:
+    include_code_snippets: true
+    include_architecture_diagrams: true
+    include_extension_examples: true
+  installation:
+    include_scripts: true
+    include_docker_commands: true
+    include_k8s_commands: true
+  deployment:
+    include_docker: true
+    include_k8s: true
+    include_cloud: true
+  configuration:
+    include_defaults: true
+    include_examples: true
+    include_validation: true
+  agent_reference:
+    include_all_agents: true
+    include_capabilities: true
+    include_lifecycle: true
+  examples:
+    include_basic: true
+    include_advanced: true
+    include_use_cases: true
+  troubleshooting:
+    include_common_issues: true
+    include_error_codes: true
+    include_solutions: true
+  faq:
+    include_general: true
+    include_technical: true
+    include_configuration: true
+    include_troubleshooting: true
+  outputs:
+    docs_path: "./docs/"
+    diagrams_path: "./docs/diagrams/"
+    examples_path: "./docs/examples/"
+    images_path: "./docs/images/"
+
+# ==============================================================================
+# Deployment & Distribution Configuration
+# ==============================================================================
+deployment:
+  setup:
+    install_path: "/opt/fractal_agent_system"
+    config_path: "/etc/fractal_agent_system"
+    log_path: "/var/log/fractal_agent_system"
+    
+  docker:
+    registry: "docker.io"
+    image_name: "fractal_agent_system"
+    tag: "latest"
+    build_context: "."
+    
+  kubernetes:
+    namespace: "fractal-system"
+    replicas: 3
+    node_selector: {}
+    tolerations: []
+    
+  cloud:
+    provider: "aws"
+    region: "us-east-1"
+    environment: "production"
+    
+  package:
+    name: "fractal-agent-system"
+    version: "1.0.0"
+    author: "Fractal Systems Team"
+    license: "MIT"
+    
+  version:
+    current: "1.0.0"
+    next: "1.1.0"
+    previous: "0.9.0"
+    
+  ci_cd:
+    platforms: ["github_actions"]
+    trigger_on_push: true
+    trigger_on_pr: true
+    deploy_on_tag: true
+
+# ==============================================================================
+# Production Optimization Configuration
+# ==============================================================================
+production:
+  performance:
+    max_response_time_ms: 200
+    max_cpu_usage_percent: 80
+    max_io_wait_percent: 20
+    network_timeout_seconds: 30
+    enable_caching: true
+    
+  memory:
+    max_memory_mb: 8192
+    garbage_collector_threshold: 70
+    memory_alert_threshold: 85
+    enable_leak_detection: true
+    
+  security:
+    ssl_enabled: true
+    ssl_cert_path: "/etc/ssl/certs/"
+    rate_limit_requests: 100
+    rate_limit_window_seconds: 60
+    enable_firewall: true
+    
+  error_handling:
+    retry_attempts: 3
+    retry_backoff_seconds: 1
+    circuit_breaker_threshold: 5
+    circuit_breaker_timeout_seconds: 30
+    fallback_enabled: true
+    
+  monitoring:
+    metrics_export: true
+    metrics_port: 9090
+    dashboard_autorefresh_seconds: 30
+    log_aggregation: true
+    
+  alerting:
+    critical_alerts: true
+    warning_alerts: true
+    info_alerts: true
+    alert_escalation_seconds: 300
+    
+  logging:
+    log_level: "INFO"
+    log_format: "json"
+    log_rotation_size_mb: 100
+    log_retention_days: 30
+    
+  resources:
+    cpu_limit: 4
+    memory_limit_mb: 8192
+    disk_limit_gb: 100
+    network_limit_mbps: 1000
+    
+  backup:
+    full_backup_schedule: "0 2 * * *"
+    incremental_backup_schedule: "0 */6 * * *"
+    backup_retention_days: 30
+    backup_path: "/var/backups/"
+    
+  recovery:
+    rpo_minutes: 5
+    rto_minutes: 10
+    recovery_test_schedule: "0 3 * * 0"
+    
+  scaling:
+    min_replicas: 2
+    max_replicas: 10
+    scale_up_cpu_threshold: 70
+    scale_down_cpu_threshold: 30
+    cooldown_seconds: 300
+    
+  load_balancing:
+    algorithm: "round_robin"
+    health_check_interval_seconds: 10
+    health_check_timeout_seconds: 5
+    session_affinity: true
+    
+  cache:
+    cache_type: "redis"
+    cache_ttl_seconds: 300
+    cache_size_mb: 1024
+    cache_eviction_policy: "lru"
+    cache_hit_ratio_target: 80
+
+# ==============================================================================
+# Performance & Load Testing Configuration
+# ==============================================================================
+performance_testing:
+  load_test:
+    concurrency_levels: [10, 50, 100, 500, 1000]
+    ramp_up_duration_seconds: 60
+    test_duration_seconds: 300
+    target_throughput_rps: 100
+    
+  stress_test:
+    start_concurrency: 10
+    max_concurrency: 2000
+    step_size: 50
+    step_duration_seconds: 30
+    
+  spike_test:
+    base_concurrency: 100
+    spike_concurrency: 500
+    spike_duration_seconds: 30
+    recovery_duration_seconds: 60
+    
+  soak_test:
+    duration_hours: 24
+    concurrency: 100
+    monitoring_interval_seconds: 60
+    memory_threshold_mb: 8192
+    
+  scalability_test:
+    node_counts: [1, 2, 4, 8]
+    test_duration_seconds: 300
+    scaling_efficiency_target: 80
+    
+  benchmarks:
+    system_benchmark: true
+    agent_benchmark: true
+    api_benchmark: true
+    database_benchmark: true
+    
+  analysis:
+    response_time_percentiles: [50, 90, 95, 99]
+    error_rate_threshold: 1
+    throughput_window_seconds: 10
+    
+  thresholds:
+    max_response_time_ms: 200
+    min_throughput_rps: 50
+    max_error_rate_percent: 1
+    max_cpu_percent: 80
+    max_memory_percent: 80
+
+# ==============================================================================
+# User Acceptance Testing (UAT) Configuration
+# ==============================================================================
+uat:
+  testing:
+    end_to_end_enabled: true
+    user_scenarios_enabled: true
+    business_flows_enabled: true
+    role_based_enabled: true
+    
+  validation:
+    use_case_validation: true
+    acceptance_criteria: true
+    ui_validation: true
+    workflow_validation: true
+    
+  integration:
+    api_integration: true
+    database_integration: true
+    external_services: true
+    event_integration: true
+    
+  data:
+    integrity_check: true
+    consistency_check: true
+    accuracy_check: true
+    completeness_check: true
+    
+  security:
+    auth_validation: true
+    authorization_validation: true
+    data_protection: true
+    compliance_validation: true
+    
+  performance:
+    response_time_threshold_ms: 200
+    throughput_threshold_rps: 100
+    resource_usage_threshold: 80
+    scalability_efficiency: 80
+    
+  feedback:
+    surveys_enabled: true
+    feedback_analysis: true
+    satisfaction_tracking: true
+    improvement_suggestions: true
+    
+  acceptance:
+    min_acceptance_score: 85
+    require_uat_signoff: true
+    approval_required: true
+    signoff_authority: "project_manager"
+
+# ==============================================================================
+# Final Integration & Deployment Configuration
+# ==============================================================================
+final_integration:
+  system_assembly:
+    components: ["core", "agents", "integration", "tests", "docs"]
+    validate_before_assembly: true
+    integrity_check: true
+    
+  dependencies:
+    extract_dependencies: true
+    resolve_versions: true
+    auto_resolve_conflicts: true
+    
+  configuration:
+    merge_enabled: true
+    validate_config: true
+    config_test_enabled: true
+    
+  code_validation:
+    syntax_check: true
+    type_check: true
+    lint_check: true
+    quality_check: true
+    
+  deployment:
+    deployment_type: "docker"  # docker, k8s, cloud, local
+    verify_before_deploy: true
+    health_check_wait_seconds: 60
+    
+  services:
+    auto_start: true
+    auto_connect: true
+    health_check_interval: 30
+    monitor_enabled: true
+    
+  health:
+    system_health: true
+    agent_health: true
+    service_health: true
+    performance_health: true
+    
+  go_live:
+    readiness_check: true
+    approval_required: true
+    announce_go_live: true
+    
+  smoke_test:
+    critical_flows: true
+    api_tests: true
+    ui_tests: true
+    integration_tests: true
+    
+  rollback:
+    plan_before_deploy: true
+    execute_on_failure: true
+    verify_after_rollback: true
+    communicate_rollback: true
+    
+  post_deployment:
+    functional_verify: true
+    performance_verify: true
+    security_verify: true
+    user_verify: true
+    
+  handover:
+    prepare_documentation: true
+    generate_training_materials: true
+    generate_operations_guide: true
+    coordinate_handover: true
+    
+  signoff:
+    generate_checklist: true
+    track_approvals: true
+    collect_signatures: true
+    generate_final_report: true
+
+# ==============================================================================
+# Production Monitoring & Support Configuration
+# ==============================================================================
+monitoring_support:
+  real_time_monitor:
+    monitoring_interval_seconds: 5
+    metrics: ["system", "agent", "service", "business"]
+    data_retention_days: 30
+    
+  incident_detector:
+    anomaly_detection: true
+    pattern_recognition: true
+    threshold_checking: true
+    predictive_detection: true
+    
+  alert_manager:
+    alert_channel: ["email", "slack", "pagerduty"]
+    escalation_after_minutes: 5
+    alert_priority: ["critical", "high", "medium", "low"]
+    
+  incident_responder:
+    triage_time_minutes: 5
+    response_time_minutes: 15
+    resolution_time_minutes: 60
+    
+  support_tickets:
+    ticket_priority: ["critical", "high", "medium", "low"]
+    resolution_time_hours: 4
+    assignee_rotation: true
+    
+  escalation:
+    escalation_levels: ["L1", "L2", "L3", "L4"]
+    escalation_time_minutes: 15
+    auto_escalation: true
+    
+  root_cause_analysis:
+    analysis_completion_hours: 24
+    prevention_planning: true
+    recommendation_generation: true
+    
+  performance_monitor:
+    sla_threshold_ms: 200
+    throughput_threshold_rps: 100
+    trend_analysis_enabled: true
+    
+  resource_monitor:
+    cpu_threshold: 80
+    memory_threshold: 80
+    disk_threshold: 85
+    network_threshold: 70
+    
+  error_aggregation:
+    error_retention_days: 30
+    classification_enabled: true
+    trend_detection_enabled: true
+    
+  log_analysis:
+    log_retention_days: 30
+    indexing_enabled: true
+    search_timeout_seconds: 5
+    
+  user_feedback:
+    feedback_collection_enabled: true
+    sentiment_analysis: true
+    satisfaction_target: 4.5
+    
+  continuous_improvement:
+    metric_analysis_enabled: true
+    optimization_frequency: "weekly"
+    improvement_execution: true
+
+# ==============================================================================
+# Final Documentation & Project Closure Configuration
+# ==============================================================================
+closure:
+  documentation_review:
+    review_all_docs: true
+    completeness_required: 100
+    accuracy_required: true
+    
+  quality_audit:
+    code_quality_threshold: 85
+    test_quality_threshold: 85
+    process_quality_threshold: 90
+    outcome_quality_threshold: 85
+    
+  performance_audit:
+    response_time_threshold_ms: 200
+    throughput_threshold_rps: 100
+    resource_usage_threshold: 80
+    scalability_threshold: 80
+    
+  security_audit:
+    no_critical_vulnerabilities: true
+    no_high_vulnerabilities: true
+    medium_vulnerabilities_max: 5
+    low_vulnerabilities_max: 10
+    
+  compliance_audit:
+    gdpr_required: true
+    hipaa_required: false
+    pci_required: false
+    sox_required: false
+    
+  lessons_learned:
+    collect_team_feedback: true
+    collect_stakeholder_feedback: true
+    document_success_stories: true
+    document_improvement_areas: true
+    
+  closure_report:
+    include_executive_summary: true
+    include_detailed_report: true
+    include_metrics: true
+    include_recommendations: true
+    
+  future_roadmap:
+    plan_features: true
+    plan_enhancements: true
+    plan_timeline: true
+    plan_resources: true
+    
+  knowledge_transfer:
+    prepare_documentation: true
+    plan_training_sessions: true
+    coordinate_handover: true
+    update_knowledge_base: true
+    
+  final_review:
+    prepare_review: true
+    execute_review: true
+    document_review: true
+    track_action_items: true
+    
+  signoff:
+    prepare_signoff: true
+    collect_signoff: true
+    validate_signoff: true
+    archive_signoff: true
+    
+  archive:
+    collect_artifacts: true
+    organize_artifacts: true
+    store_artifacts: true
+    enable_retrieval: true
+    
+  celebration:
+    plan_event: true
+    recognize_achievements: true
+    appreciate_team: true
+    communicate_success: true
+
+# ==============================================================================
+# AI & ML Extensions Configuration
+# ==============================================================================
+ai_extensions:
+  model_selector:
+    available_models:
+      - qwen2.5-coder:3b
+      - llama3.2:3b
+      - mistral:7b
+      - codegemma:2b
+      - starcoder2:3b
+    selection_strategy: "cost_accuracy_balance"
+    
+  cost_optimizer:
+    token_budget: 1000000
+    cache_ttl_seconds: 3600
+    batch_size: 10
+    cost_reduction_target: 50
+    
+  code_embedder:
+    embedding_model: "nomic-embed-text"
+    embedding_dim: 768
+    chunk_size: 512
+    storage_path: "./data/embeddings/"
+    
+  semantic_searcher:
+    search_algorithm: "cosine_similarity"
+    top_k_results: 10
+    min_similarity: 0.7
+    
+  auto_completion:
+    context_window: 1024
+    max_suggestions: 5
+    response_time_ms: 50
+    acceptance_tracking: true
+    
+  code_generator:
+    languages: ["python", "node", "go", "rust", "java"]
+    default_language: "python"
+    max_tokens: 4096
+    temperature: 0.7
+    
+  quality_predictor:
+    complexity_threshold: 10
+    maintainability_threshold: 70
+    readability_threshold: 80
+    
+  bug_predictor:
+    high_risk_patterns: ["sql_injection", "xss", "unsafe_eval"]
+    medium_risk_patterns: ["memory_leak", "race_condition"]
+    low_risk_patterns: ["code_duplication", "unused_variables"]
+    
+  performance_predictor:
+    max_time_complexity: "O(n^2)"
+    max_space_complexity: "O(n)"
+    optimization_threshold: 80
+    
+  test_generator:
+    test_framework: "pytest"
+    coverage_target: 90
+    mock_generation: true
+    
+  refactoring:
+    detect_smells: true
+    suggest_refactoring: true
+    impact_analysis: true
+    
+  code_reviewer:
+    review_depth: "detailed"
+    comment_generation: true
+    summarize_reviews: true
+    
+  documentation_generator:
+    doc_format: ["markdown", "json", "yaml"]
+    include_examples: true
+    
+  fine_tuning:
+    base_model: "qwen2.5-coder:3b"
+    training_epochs: 3
+    learning_rate: 2e-5
+    batch_size: 4
+    
+  multi_modal:
+    image_processing: true
+    audio_processing: false
+    video_processing: false
+
+gui:
+  server:
+    host: "0.0.0.0"
+    port: 8080
+    debug: false
+    workers: 4
+    
+  frontend:
+    title: "Fractal Multi-Agent System"
+    theme: "dark"
+    auto_refresh_seconds: 5
+    
+  api:
+    version: "v1"
+    prefix: "/api/v1"
+    cors_enabled: true
+    origins: ["*"]
+    
+  websocket:
+    enabled: true
+    path: "/ws"
+    ping_interval: 30
+    
+  authentication:
+    enabled: true
+    session_timeout_hours: 24
+    token_expiry_hours: 8
+    
+  static:
+    path: "./gui/frontend"
+    cache_control: "public, max-age=3600"
+    
+  logging:
+    level: "INFO"
+    format: "json"
+    path: "./logs/gui.log"
+    
+  security:
+    https_enabled: false
+    rate_limit_requests: 100
+    rate_limit_window_seconds: 60
