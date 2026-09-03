@@ -124,27 +124,39 @@ _KEYED_PROVIDER_ORDER = [
 ]
 
 _DOTENV_LOADED = False
+# The .env lives next to this module (the project root) — not the process CWD,
+# which can be anything (Electron launcher, systemd, IDE run config, …).
+_DOTENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 
 
-def _load_dotenv(path: str = ".env") -> None:
-    """Minimal .env loader (KEY=VALUE, # comments) — no third-party dependency."""
+def _load_dotenv(path: Optional[str] = None) -> None:
+    """Minimal .env loader (KEY=VALUE, # comments) — no third-party dependency.
+
+    Looks for the .env next to this module first, then falls back to the process
+    CWD so standalone scripts that deliberately place a .env nearby still work.
+    """
     global _DOTENV_LOADED
     if _DOTENV_LOADED:
         return
     _DOTENV_LOADED = True
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            for raw in fh:
-                line = raw.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and key not in os.environ:
-                    os.environ[key] = value
-    except OSError:
-        pass  # no .env file -> environment variables only
+    candidates = [path] if path else [_DOTENV_PATH, os.path.join(os.getcwd(), ".env")]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            with open(candidate, "r", encoding="utf-8") as fh:
+                for raw in fh:
+                    line = raw.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, _, value = line.partition("=")
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+            return  # first readable candidate wins
+        except OSError:
+            continue
 
 
 def _get_env(name: str, default: Optional[str] = None) -> Optional[str]:

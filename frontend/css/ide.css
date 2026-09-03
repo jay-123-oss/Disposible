@@ -1064,3 +1064,242 @@ html, body {
   padding: 0 4px;
   border-radius: 3px;
 }
+
+/* ==========================================================================
+   10. SIDE PANELS (Search / Source Control / Run & Debug / Extensions)
+   ========================================================================== */
+.side-panel {
+  width: 240px;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-default);
+  display: none;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.side-panel.visible { display: flex; }
+
+/* Explorer keeps its own rule but must also obey the shared .visible toggle */
+.explorer-sidebar:not(.visible) { display: none; }
+
+.side-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+
+/* Search */
+.search-input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.search-input-row input {
+  flex: 1;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 5px 8px;
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.search-input-row input:focus { border-color: var(--accent-blue); }
+
+.search-result-item {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-muted);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.search-result-item:hover { background-color: var(--bg-subtle); color: var(--text-primary); }
+
+.search-result-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-blue);
+  word-break: break-all;
+}
+
+.search-result-line {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-line b, .search-result-path b { color: #f0f6fc; background: rgba(210,153,34,.25); border-radius: 2px; padding: 0 2px; }
+
+/* Source Control */
+.scm-branch-line {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  padding: 4px 2px 8px;
+  border-bottom: 1px solid var(--border-muted);
+  margin-bottom: 8px;
+}
+
+.scm-change-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.scm-change-item:hover { background-color: var(--bg-subtle); color: var(--text-primary); }
+
+.scm-change-code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+.scm-change-code.mod { color: #d29922; }
+.scm-change-code.add { color: #3fb950; }
+.scm-change-code.del { color: #f85149; }
+.scm-change-code.untracked { color: #58a6ff; }
+
+.scm-change-path { font-family: var(--font-mono); font-size: 11px; word-break: break-all; }
+
+.scm-commit-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.scm-empty { font-size: 12px; color: var(--text-muted); padding: 6px 2px; }
+
+/* Run & Debug */
+.debug-target-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 2px;
+  font-size: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.debug-target-item button {
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.debug-target-item button:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.debug-target-item button:disabled { opacity: .5; cursor: wait; }
+
+.debug-result {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.debug-result .ok { color: #3fb950; }
+.debug-result .fail { color: #f85149; }
+
+/* Extensions */
+.ext-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 2px;
+  font-size: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.ext-item label { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+.ext-item input { accent-color: var(--accent-blue); cursor: pointer; }
+
+/* ==========================================================================
+   11. MENU DROPDOWN
+   ========================================================================== */
+.menu-dropdown {
+  position: fixed;
+  min-width: 210px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 2000;
+  padding: 4px 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.menu-dropdown-item {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.menu-dropdown-item:hover { background-color: var(--bg-subtle); }
+
+.menu-dropdown-kbd {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.menu-dropdown-sep { height: 1px; background: var(--border-muted); margin: 4px 0; }
+
+/* ==========================================================================
+   12. PANEL / TAB TOGGLES
+   ========================================================================== */
+.preview-panel.hidden { display: none; }
+.monaco-canvas.hidden { display: none; }
+
+.bottom-terminal-panel.compact { height: 34px; }
+.bottom-terminal-panel.compact .terminal-console { display: none; }
+
+.editor-tab { cursor: pointer; }
+
+/* Terminal empty state for Output / Debug Console views */
+.term-view-empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.monaco-canvas.full { width: 100%; }

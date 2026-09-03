@@ -113,10 +113,39 @@ window.AntigravityEditor = (function () {
     return currentFilePath;
   }
 
+  function undo() {
+    if (editorInstance) editorInstance.trigger('menu', 'undo');
+  }
+
+  function redo() {
+    if (editorInstance) editorInstance.trigger('menu', 'redo');
+  }
+
+  function selectAll() {
+    if (editorInstance) editorInstance.trigger('menu', 'editor.action.selectAll');
+  }
+
+  function goToLine(lineNumber) {
+    if (!editorInstance) return;
+    const line = Math.max(1, parseInt(lineNumber, 10) || 1);
+    editorInstance.revealLineInCenter(line);
+    editorInstance.setPosition({ lineNumber: line, column: 1 });
+    editorInstance.focus();
+  }
+
+  function isReady() {
+    return !!editorInstance;
+  }
+
   return {
     init,
     openFile,
     getValue,
     getCurrentPath,
+    undo,
+    redo,
+    selectAll,
+    goToLine,
+    isReady,
   };
 })();
